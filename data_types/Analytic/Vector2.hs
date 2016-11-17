@@ -4,4 +4,4 @@ module Vector2
 
 import Point
 
-data Vector2 a = Vector2 (Point2 (a, a)) (Point2 (a, a))
+data Vector2 a = Vector2 ( (Point2 (a, a)), (Point2 (a, a)) )
