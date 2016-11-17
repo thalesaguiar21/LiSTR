@@ -1,4 +1,4 @@
-module Point
+module Analytic.Point
 ( Point2 (..)
 , Point3 (..)
 ) where
@@ -23,3 +23,5 @@ instance (Num x) => Num (Point3 x) where
 	abs    (Point3 (x, y, z)) = Point3 (abs x, abs y, abs z) 
 	signum (Point3 (x, y, z)) = Point3 (signum x, signum y, signum z) 
 	fromInteger i = Point3 (fromInteger i, fromInteger i, fromInteger i)
+
+data Point a = Point2v (a, a) | Point3v (a, a, a)
