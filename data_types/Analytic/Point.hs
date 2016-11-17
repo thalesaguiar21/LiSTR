@@ -1,4 +1,4 @@
-module Analytic.Point
+module Point
 ( Point2 (..)
 , Point3 (..)
 ) where
