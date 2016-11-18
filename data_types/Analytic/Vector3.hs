@@ -33,14 +33,18 @@ norm v = let (x, y, z) = origin v
 
 -- Ângulo entre dois vetores no espaço
 angle :: Vector3 -> Vector3 -> Float
-angle v1 v2 = let dprod = v1 `dotProd` v2
+angle v1 v2 = let dprod = v1 >< v2
               in acos dprod
 
--- Produto interno
-dotProd :: Vector3 -> Vector3 -> Float
-v1 `dotProd` v2 = let (x1, y1, z1) = origin v1
-                      (x2, y2, z2) = origin v2
-                  in x1*x2 + y1*y2 + z1*z2
+-- Multiplicação por escalar
+scal :: Float -> Vector3 -> Vector3
+scal u (Vector3 (i, j, k, l, m, n)) = Vector3 (u*i, u*j, u*k, u*l, u*m, u*n)
+
+-- Produto interno/escalar
+(><) :: Vector3 -> Vector3 -> Float
+v1 >< v2 = let (x1, y1, z1) = origin v1
+               (x2, y2, z2) = origin v2
+           in x1*x2 + y1*y2 + z1*z2
 
 -- Produto vetorial
 (<>) :: Vector3 -> Vector3 -> Vector3
