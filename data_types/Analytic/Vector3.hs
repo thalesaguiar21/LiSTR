@@ -1,17 +1,17 @@
 module Vector3
-( Vector3 (..)
-, (|+|)
-, (|-|)
-, (|*|)
-, origin
-, start
-, end
-, norm
-, angle
-, scal
-, (><)
-, (<>)
-) where
+    ( Vector3 (..)
+    , (|+|)
+    , (|-|)
+    , (|*|)
+    , origin
+    , start
+    , end
+    , norm
+    , angle
+    , scal
+    , (><)
+    , (<>)
+    ) where
 
 data Vector3 = Vector3 (Float, Float, Float, Float, Float, Float)
     deriving (Eq, Show)

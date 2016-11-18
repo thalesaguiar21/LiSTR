@@ -1,19 +1,22 @@
 module Vector
-( Vector (..)
-, (|+|)
-, (|-|)
-, (|*|)
-, origin
-, start
-, end
-, mag
-, angle
-, scal
-, (><)
-) where
+    ( Vector (..)
+    , (|+|)
+    , (|-|)
+    , (|*|)
+    , origin
+    , start
+    , end
+    , mag
+    , angle
+    , scal
+    , (><)
+    ) where
 
 
 data Vector = Vector (Float, Float, Float, Float) deriving (Eq, Show)
+
+toTuple :: Vector -> (Float, Float, Float, Float)
+toTuple (Vector (i, j, k, l)) = (i, j, k, l)
 
 -- Adição entre vetores no plano
 (|+|) :: Vector -> Vector -> Vector
