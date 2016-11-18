@@ -1,3 +1,18 @@
+module Vector3
+( Vector3 (..)
+, (|+|)
+, (|-|)
+, (|*|)
+, origin
+, start
+, end
+, norm
+, angle
+, scal
+, (><)
+, (<>)
+) where
+
 data Vector3 = Vector3 (Float, Float, Float, Float, Float, Float)
     deriving (Eq, Show)
 
@@ -14,7 +29,7 @@ Vector3 ( i, j, k, l, m, n ) |-| Vector3 ( o, p, q, r, s, t ) = Vector3 (i-o, j-
 (|*|) :: Vector3 -> Vector3 -> Vector3
 Vector3 ( i, j, k, l, m, n ) |*| Vector3 ( o, p, q, r, s, t ) = Vector3 (i*o, j*p, k*q, l*r, m*s, n*t)
 
--- Vetor equivalente com início na origem
+-- Vetor paraleo com início na origem
 origin :: Vector3 -> (Float, Float, Float)
 origin (Vector3 (i, j, k, l, m, n)) = (l-i, m-j, n-k)
 
