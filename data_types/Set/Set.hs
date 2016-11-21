@@ -50,6 +50,11 @@ rm  Empty _ = Empty
 rm (x :> rest) y = if x == y then rest
                    else x :> rm rest y
 
+-- Cria um Set a partir de uma lista
+build :: Eq a => [a] -> Set a
+build [] = Empty
+build (x:s) = x :> build s
+
 -- Calcula a cardinalidade de um Set
 card :: Eq a => Set a -> Int
 card Empty = 0
