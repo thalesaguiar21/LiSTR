@@ -7,11 +7,11 @@ import Text.Parsec.Expr
 import Text.Parsec.Token
 import Text.Parsec.Language
 
-data P = FunP FunDecl [P] | VarP VarDecl [P] deriving Show
+data P = FunP FunDecl | VarP VarDecl | P [P] deriving Show
 data FunDecl = Fun Type Id ParamDecl Stmt deriving Show
 data Stmt = AtribS Atrib | IfS If {-| ForS ForRule-} | While LogicExp Stmt | VarS VarDecl | FunS FunCall | Return Exp | Break | Continue | Write Exp | Read Exp | Stmts [Stmt] deriving Show
 data Atrib = Atrib Id Assign Exp {-| AtribPlus String += Exp1-} deriving Show
-data Exp = Exp1 BinaryOp1 Exp Exp | Exp2 BinaryOp2 Exp Exp | ExpId String | Neg Exp | Post Id PostFixOp | Pre PreFixOp Id deriving Show
+data Exp = Exp1 BinaryOp1 Exp Exp | Exp2 BinaryOp2 Exp Exp | ExpId String | Neg Exp | Post PostFixOp Id | Pre PreFixOp Id deriving Show
 data BinaryOp1 = Add | Sub deriving Show
 data BinaryOp2 = Prod | Div | Mod | VecProd deriving Show
 data Assign = Assign deriving Show
@@ -24,9 +24,9 @@ data LogicExp = LogicExp LogicOp Exp Exp | BoolExp BoolOp LogicExp LogicExp | No
 data LogicOp = Lt | Gt | LEq | GEq | Eq | Diff deriving Show
 data BoolOp = And | Or deriving Show
 data VarDecl = VarDecl Type [Id] | VarDeclA Type Id Assign Exp deriving Show
-data ParamDecl = ParamDecl [Type] deriving Show
+data ParamDecl = ParamDecl [(Type, Id)] deriving Show
 data FunCall = FunCall Id Param deriving Show
-data Param = Param [Id] deriving Show
+data Param = Param [Exp] deriving Show
 {-data ForRule = For111 Type ForAtrib ForComp ForRight Stmt | For110 Type ForAtrib ForComp          Stmt
 			 | For101 Type ForAtrib         ForRight Stmt | For100 Type ForAtrib                  Stmt
 			 | For011               ForComp ForRight Stmt | For010               ForComp          Stmt
@@ -52,22 +52,23 @@ def = emptyDef{ commentStart = "/*"
 
 TokenParser{ parens = m_parens
 		   , braces = m_braces
+		   , semi = m_semi
 		   , comma = m_comma
            , identifier = m_identifier
            , reservedOp = m_reservedOp
 		   , stringLiteral = m_stringLiteral
            , reserved = m_reserved
+           , semiSep = m_semiSep
            , semiSep1 = m_semiSep1
+		   , commaSep = m_commaSep
 		   , commaSep1 = m_commaSep1
            , whiteSpace = m_whiteSpace } = makeTokenParser def
 
 exprparser :: Parser Exp
 exprparser = buildExpressionParser table term <?> "expression"
 
-table = [ [Prefix (m_reservedOp "!" >> return (Neg))]--Alterar ordem para mudar a precedência
-		,{- [Postfix (m_reservedOp "++" >> return (Post PlusPlusPost))]
-		, [Postfix (m_reservedOp "--" >> return (Post MinusMinusPost))]
-		,-} [Infix (m_reservedOp "*" >> return (Exp2 Prod)) AssocLeft]
+table = [ [Prefix (m_reservedOp "-" >> return (Neg))]--Alterar ordem para mudar a precedência
+		, [Infix (m_reservedOp "*" >> return (Exp2 Prod)) AssocLeft]
 		, [Infix (m_reservedOp "/" >> return (Exp2 Div)) AssocLeft]
 		, [Infix (m_reservedOp "#" >> return (Exp2 VecProd)) AssocLeft]
 		, [Infix (m_reservedOp "%" >> return (Exp2 Mod)) AssocLeft]
@@ -76,7 +77,13 @@ table = [ [Prefix (m_reservedOp "!" >> return (Neg))]--Alterar ordem para mudar 
         ]
 
 term = m_parens exprparser
+	   <|> try(exprparser_aux)
        <|> fmap ExpId m_identifier
+
+exprparser_aux =
+	do id <- m_identifier
+	   inc  <- ((m_reservedOp "++" >> return (PlusPlusPost)) <|> (m_reservedOp "--" >> return (MinusMinusPost)))
+	   return (Post inc (Id id))
 
 logicexprparser :: Parser LogicExp
 logicexprparser = buildExpressionParser logictable logicterm <?> "logicexpression"
@@ -103,58 +110,109 @@ relationalop = (m_reservedOp "<"  >> return (Lt))
 		   <|> (m_reservedOp "==" >> return (Eq))
 		   <|> (m_reservedOp "!=" >> return (Diff))
 
-mainparser :: Parser Stmt
-mainparser = m_whiteSpace >> stmtparser <* eof
-    where
-      stmtparser :: Parser Stmt
-      stmtparser = fmap Stmts (m_semiSep1 stmt1)
-      stmt1 =	  do { m_reserved "return"
-					 ; e <- exprparser
-					 ; return (Return e)
-					 }
-              <|> do { t <- m_identifier
-					 ; do{ m_reservedOp "="
-						 ; e <- exprparser
-						 ; return (AtribS (Atrib (Id t) (Assign) e))}
-				   <|> do { id <- m_identifier ;
-							do { m_reservedOp "="
-							   ; e <- exprparser
-							   ; return (VarS (VarDeclA (Type t) (Id id) Assign e))
-							   }
-						<|> do { comma <- m_comma
-							   ; ids <- (m_commaSep1 id1)
-						       ; return (VarS (VarDecl (Type t) ((Id id) : ids)))
-							   }
-						  }
-                     }
-              <|> do { m_reserved "if"
-					 ; condition <- (m_parens logicexprparser)
-                     ; ifblock <- (m_braces stmtparser)
-					 ; do { m_reserved "else"; 
-						  ; elseblock <- (m_braces stmtparser);
-						  ; return (IfS (IfElse condition ifblock elseblock))}
-				<|>	   do { return (IfS (If condition ifblock))}
-                     }
-              <|> do { m_reserved "while"
-                     ; condition <- (m_parens logicexprparser)
-                     ; block <- (m_braces stmtparser)
-                     ; return (While condition block)
-                     }
-			  <|> do { m_reserved "break"
-					 ; return Break
-					 }
-			  <|> do { m_reserved "continue"
-					 ; return Continue
-					 }
-			  <|> do { m_reserved "write"
-					 ; e <- exprparser
-					 ; return (Write e)
-					 }
-			  <|> do { m_reserved "read"
-					 ; e <- exprparser
-					 ; return (Read e)
-					 }
-					 where id1 = do{ id <- m_identifier; return (Id id)}
+ifparser :: Parser Stmt
+ifparser = do { m_reserved "if"
+			  ; condition <- (m_parens logicexprparser)
+			  ; ifblock <- (m_braces stmtparser)
+			  ; do { m_reserved "else"; 
+				   ; elseblock <- (m_braces stmtparser);
+				   ; return (IfS (IfElse condition ifblock elseblock))}
+			<|> do { return (IfS (If condition ifblock))}
+			 }
+
+whileparser :: Parser Stmt
+whileparser = do { m_reserved "while"
+			 ; condition <- (m_parens logicexprparser)
+			 ; block <- (m_braces stmtparser)
+			 ; return (While condition block)
+			 }
+
+vardeclparserstmt :: Parser Stmt
+vardeclparserstmt = try (
+					do { t <- m_identifier
+					   ; id <- m_identifier
+					   ; m_reservedOp "="
+					   ; e <- exprparser
+					   ; return (VarS (VarDeclA (Type t) (Id id) Assign e))
+					   }
+					)
+			<|> try (
+					do { t <- m_identifier
+					   ; ids <- (m_commaSep id1)
+					   ; return (VarS(VarDecl (Type t) (ids)))
+					   }
+				    )
+			 where id1 = do{ id <- m_identifier; return (Id id)}
+
+atribparser :: Parser Stmt
+atribparser = try(do { id <- m_identifier
+				 ; m_reservedOp "="
+				 ; e <- exprparser
+				 ; return (AtribS (Atrib (Id id) (Assign) e))
+				 })
+
+funcallparser :: Parser Stmt
+funcallparser = try(
+					do { id <- m_identifier
+					   ; p <- m_parens (m_commaSep params)
+					   ; return (FunS (FunCall (Id id) (Param p)))
+					   }
+					)
+					where params = do{ e <- exprparser; return e}
+
+stmtparser :: Parser Stmt
+stmtparser = do { fmap Stmts (stmt1 `endBy` m_semi)}
+stmt1 = do { m_reserved "return"; e <- exprparser; return (Return e)}
+	  <|> atribparser
+	  <|> funcallparser
+	  <|> vardeclparserstmt
+	  <|> ifparser
+	  <|> whileparser
+	  <|> do { m_reserved "break"; return Break}
+	  <|> do { m_reserved "continue"; return Continue}
+	  <|> do { m_reserved "read"; e <- exprparser; return (Read e)}
+	  <|> do { m_reserved "write"; e <- exprparser; return (Write e)}
+			 where params = do{ e <- exprparser; return e}
+
+fundeclparser :: Parser P
+fundeclparser = try (
+					do { funtype <- m_identifier
+					   ; funid <- m_identifier
+					   ; p <- m_parens (m_commaSep params)
+					   ; stmt <- m_braces stmtparser
+					   ; return (FunP (Fun (Type funtype) (Id funid) (ParamDecl p) stmt))
+					   }
+					)
+				where params = do { t <- m_identifier
+								  ; id <- m_identifier
+								  ; return (Type t, Id id)
+								  }
+
+vardeclparserp :: Parser P
+vardeclparserp = try (
+					do { t <- m_identifier
+					   ; id <- m_identifier
+					   ; m_reservedOp "="
+					   ; e <- exprparser
+					   ; return (VarP (VarDeclA (Type t) (Id id) Assign e))
+					   }
+					)
+			<|> try (
+					do { t <- m_identifier
+					   ; ids <- (m_commaSep id1)
+					   ; return (VarP (VarDecl (Type t) (ids)))
+					   }
+					)
+			 where id1 = do{ id <- m_identifier; return (Id id)}
+
+programparser :: Parser P
+programparser = do { fmap P (many (do{ x <- p1; return x }))}
+p1 = fundeclparser
+ <|> vardeclparserp
+
+mainparser :: Parser P
+mainparser = m_whiteSpace >> programparser <* eof
+
 play :: String -> IO ()
 play inp = case parse mainparser "" inp of
              { Left err -> print err
