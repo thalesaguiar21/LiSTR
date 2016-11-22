@@ -15,9 +15,12 @@ infixr 5 :>
 data Set a = Empty | a :> (Set a) deriving (Read)
 
 instance Show a => Show (Set a) where
-  show Empty = "-"
-  show (x :> Empty) = show x
-  show (x :> rest) = show x ++ ", " ++ show rest
+  show s = "{" ++ wSet s
+
+wSet :: Show a => Set a -> String
+wSet Empty = "}"
+wSet (x :> Empty) = show x ++ "}"
+wSet (x :> rest) = show x ++ ", " ++ wSet rest
 
 instance Eq a => Eq (Set a) where
   Empty == Empty = True
