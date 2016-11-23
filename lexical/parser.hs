@@ -11,7 +11,7 @@ data P = FunP FunDecl | VarP VarDecl | P [P] deriving Show
 data FunDecl = Fun Type Id ParamDecl Stmt deriving Show
 data Stmt = AtribS Atrib | IfS If {-| ForS ForRule-} | While LogicExp Stmt | VarS VarDecl | FunS FunCall | Return Exp | Break | Continue | Write Exp | Read Exp | Stmts [Stmt] deriving Show
 data Atrib = Atrib Id Assign Exp {-| AtribPlus String += Exp1-} deriving Show
-data Exp = Exp1 BinaryOp1 Exp Exp | Exp2 BinaryOp2 Exp Exp | ExpId String | Neg Exp | Post PostFixOp Id | Pre PreFixOp Id deriving Show
+data Exp = Exp1 BinaryOp1 Exp Exp | Exp2 BinaryOp2 Exp Exp | ExpId String | Neg Exp | FunE FunCall | Const Value | Post PostFixOp Id | Pre PreFixOp Id deriving Show
 data BinaryOp1 = Add | Sub deriving Show
 data BinaryOp2 = Prod | Div | Mod | VecProd deriving Show
 data Assign = Assign deriving Show
@@ -19,6 +19,7 @@ data PostFixOp = PlusPlusPost | MinusMinusPost deriving Show
 data PreFixOp = Negate | PlusPlusPre | MinusMinusPre deriving Show
 data Id = Id String deriving Show
 data Type = Type String deriving Show
+data Value = IntV Integer | FloatV Double | CharV Char | StringV String deriving Show
 data If = If LogicExp Stmt | IfElse LogicExp Stmt Stmt deriving Show
 data LogicExp = LogicExp LogicOp Exp Exp | BoolExp BoolOp LogicExp LogicExp | Not LogicExp | BoolId String deriving Show
 data LogicOp = Lt | Gt | LEq | GEq | Eq | Diff deriving Show
@@ -52,14 +53,17 @@ def = emptyDef{ commentStart = "/*"
 
 TokenParser{ parens = m_parens
 		   , braces = m_braces
-		   , semi = m_semi
-		   , comma = m_comma
            , identifier = m_identifier
+		   , integer = m_integer
+		   , float = m_float
+		   , charLiteral = m_char
+		   , stringLiteral = m_string
            , reservedOp = m_reservedOp
-		   , stringLiteral = m_stringLiteral
            , reserved = m_reserved
+		   , semi = m_semi
            , semiSep = m_semiSep
            , semiSep1 = m_semiSep1
+		   , comma = m_comma
 		   , commaSep = m_commaSep
 		   , commaSep1 = m_commaSep1
            , whiteSpace = m_whiteSpace } = makeTokenParser def
@@ -78,12 +82,34 @@ table = [ [Prefix (m_reservedOp "-" >> return (Neg))]--Alterar ordem para mudar 
 
 term = m_parens exprparser
 	   <|> try(exprparser_aux)
+	   <|> funcallparserexp
        <|> fmap ExpId m_identifier
 
-exprparser_aux =
-	do id <- m_identifier
-	   inc  <- ((m_reservedOp "++" >> return (PlusPlusPost)) <|> (m_reservedOp "--" >> return (MinusMinusPost)))
-	   return (Post inc (Id id))
+funcallparserexp :: Parser Exp
+funcallparserexp = try(
+					do { id <- m_identifier
+					   ; p <- m_parens (m_commaSep params)
+					   ; return (FunE (FunCall (Id id) (Param p)))
+					   }
+					)
+					where params = do{ e <- exprparser; return e}
+
+exprparser_aux = try(do { float <- m_float;
+					; return (Const (FloatV float))
+					})
+			 <|> do { int <- m_integer;--Devido ao - funcionar como operador unario, coisas como -10 sao interpretadas como Neg const Type 10 e nao const Type 10
+					; return (Const (IntV int))
+					}
+			 <|> do { char <- m_char;
+					; return (Const (CharV char))
+					}
+			 <|> do { str <- m_string;
+					; return (Const (StringV str))
+					}
+			 <|> do { id <- m_identifier
+					; inc  <- ((m_reservedOp "++" >> return (PlusPlusPost)) <|> (m_reservedOp "--" >> return (MinusMinusPost)))
+					; return (Post inc (Id id))
+					}
 
 logicexprparser :: Parser LogicExp
 logicexprparser = buildExpressionParser logictable logicterm <?> "logicexpression"
@@ -151,8 +177,8 @@ atribparser = try(do { id <- m_identifier
 				 ; return (AtribS (Atrib (Id id) (Assign) e))
 				 })
 
-funcallparser :: Parser Stmt
-funcallparser = try(
+funcallparserstmt :: Parser Stmt
+funcallparserstmt = try(
 					do { id <- m_identifier
 					   ; p <- m_parens (m_commaSep params)
 					   ; return (FunS (FunCall (Id id) (Param p)))
@@ -164,7 +190,7 @@ stmtparser :: Parser Stmt
 stmtparser = do { fmap Stmts (stmt1 `endBy` m_semi)}
 stmt1 = do { m_reserved "return"; e <- exprparser; return (Return e)}
 	  <|> atribparser
-	  <|> funcallparser
+	  <|> funcallparserstmt
 	  <|> vardeclparserstmt
 	  <|> ifparser
 	  <|> whileparser
