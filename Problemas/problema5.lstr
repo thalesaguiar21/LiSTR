@@ -1,0 +1,23 @@
+proc mdc(int n, int m, /*inout*/ int r){//depois tem que colocar proc como palavra reservada para procedimentos e inout para passagem por valor-resultado
+	if(m % n == 0){
+		r = n;
+	};
+	if(n % m == 0){
+		r = m;
+	}
+	else{
+		if(m > n){
+			mdc(n, m % n, r);
+		}
+		else{
+			mdc(m, n % m, r);
+		};
+	};
+}
+
+int main(){
+	int m, n, r;
+	read m n;
+	mdc(m, n, r);
+	write r;
+}

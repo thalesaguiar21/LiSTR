@@ -1,0 +1,17 @@
+int main(){
+	int a, b;
+	rational x, y;
+	
+	//A
+	x = a/b;
+	write x n(x) d(x);//n e d sao funcoes que retornam o numerador e denominador, respectivamente. Depois temos de trocar pelo nome correto
+	
+	//B
+	y = a/b;
+	write (x == y);//O parser nao aceita se a comparacao nao estiver entre parenteses
+	y = b/a;
+	write (x == y);
+	
+	//C
+	write x+y '\n' (-x) '\n' x-y '\n' x*y '\n' inv(x) '\n' x/y;
+}
