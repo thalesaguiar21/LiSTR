@@ -1,0 +1,8 @@
+int main(){
+	rational x, y;
+	int x1, x2, y1, y2, c;
+	read x1 x2 y1 y2 c;
+	x = x1/x2;
+	y = y1/y2;
+	write (x * x - y + c);//conversao implicita de alargamento permitida pela linguagem
+}
