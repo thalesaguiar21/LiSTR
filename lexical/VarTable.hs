@@ -9,10 +9,23 @@ import Text.Parsec.Expr
 import Text.Parsec.Token
 import Text.Parsec.Language
 import Data.Typeable
-
+    
 type Name = String
 type Escope = Integer
 type Symbol = (Name, Value, Type, Escope)
+
+findSymb :: [Symbol] -> (Name, Escope) -> Symbol
+findSymb [] _ = ("", (IntV (-1)), Integer, -1)
+findSymb (h:t) (n0, e0) = let (n1, _, _, e1) = h in
+                        if ((n0 == n1) && (e0 == e1)) then h
+                        else findSymb t (n0, e0) 
+
+add :: [Symbol] -> Symbol -> [Symbol]
+add [] symb = [symb]
+add table symb = let (n, _, _, e) = symb
+                     found = findSymb table (n, e)
+                 in if found == ("", (IntV (-1)), Integer, -1) then symb:table
+                    else table
 
 addSymb :: [Symbol] -> [Name] -> String -> [Symbol]
 addSymb [] ids t = [(id, IntV 0, stringToType t, 0) | id <- ids]
@@ -22,13 +35,7 @@ rmSymb :: [Symbol] -> Escope -> [Symbol]
 rmSymb [] _ = []
 rmSymb (h : t) e0 = let (_, _, _, e1) = h in
                         if (e0 == e1) then rmSymb t e0
-                        else h : rmSymb t e0
-
-findSymb :: [Symbol] -> (Name, Escope) -> Symbol
-findSymb [] _ = ("", (IntV (-1)), Integer, -1)
-findSymb (h:t) (n0, e0) = let (n1, _, _, e1) = h in
-                        if ((n0 == n1) && (e0 == e1)) then h
-                        else findSymb t (n0, e0)    
+                        else h : rmSymb t e0   
     
 updateSymb :: [Symbol] -> (Name, Escope) -> Value -> [Symbol]
 updateSymb [] _ _         = []
@@ -41,9 +48,9 @@ updateAux [] _ _ = []
 updateAux (h:table) symb val = let (n, v, t, e) = h
                                    (tn, tv, tt, te) = symb
                                in if n == tn && t == tt 
-                               	  then do let h = (tn, val, tt, te)
+                                  then do let h = (tn, val, tt, te)
                                           h:table
-                               	  else h : updateAux table symb val
+                                  else h : updateAux table symb val
 
 
 superType :: Type -> Type -> Bool
