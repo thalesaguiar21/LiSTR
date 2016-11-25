@@ -15,8 +15,8 @@ de :: Racional -> Int
 de (PRacional _ l) = l
 
 mdc :: Int -> Int -> Int
-mdc a b = let g = if a>b then a else b
-              l = if g==a then b else a
+mdc a b = let g = if (abs a)>(abs b) then a else b
+              l = if (abs g)==(abs a) then b else a
             in
           if (g`mod`l)==0 then l
           else mdc l (g`mod`l)
@@ -35,18 +35,13 @@ instance Eq Racional where
   r1 == r2 = (nu r1) == (nu r2) && (de r1) == (de r2)
 
 instance Num Racional where
-    r1 + r2 = PRacional ((nu r1 * de r2) + (nu r2 * de r1)) (mmc (de r1) (de r2))
+    r1 + r2 = PRacional ((nu r1 * de r2) + (nu r2 * de r1)) ((de r1)*(de r2))
 
-    r1 - r2 = PRacional ((nu r1 * de r2) - (nu r2 * de r1)) (mmc (de r1) (de r2))
+    r1 - r2 = PRacional ((nu r1 * de r2) - (nu r2 * de r1)) ((de r1)*(de r2))
 
     r1 * r2 = let r = nu r1 * nu r2
                   l = de r1 * de r2
             in PRacional r l
-
-{-    r1 / r2 = let r = nu r1 * de r2
-                  l = de r1 * nu r2
-              in PRacional r l
--}
 
     signum r1 = if de r1 == 0 then error "O denominador não pode ser zero."
                 else PRacional (signum ((nu r1) * (de r1))) 1
@@ -56,6 +51,11 @@ instance Num Racional where
                 in PRacional n d
 
     fromInteger i = PRacional (fromInteger i) 1
+
+{-    r1 / r2 = let r = nu r1 * de r2
+                  l = de r1 * nu r2
+              in PRacional r l
+-}
 
 numerator :: Racional -> Int
 numerator r1 = nu r1
@@ -68,3 +68,8 @@ toFloat (PRacional n d) = (fromIntegral n) / (fromIntegral d)
 
 simplify :: Racional -> Racional
 simplify (PRacional n d) = PRacional (quot n (mdc n d)) (quot d (mdc n d))
+
+-- Coloca o racional no formato em que o sinal negativo está sempre no numerador
+upSignal :: Racional -> Racional
+upSignal (PRacional n d) =  if (n<0) == (d<0) then PRacional (abs n) (abs d)
+                            else PRacional (-(abs n)) (abs d)
