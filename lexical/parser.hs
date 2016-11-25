@@ -1,4 +1,4 @@
-module Lex where
+module Parser where
 
 import System.IO
 import System.IO.Unsafe
@@ -10,7 +10,7 @@ import Text.Parsec.Token
 import Text.Parsec.Language
 
 data P = FunP FunDecl | VarP VarDecl | P [P] deriving Show
-data FunDecl = Fun Type Id ParamDecl Stmt deriving Show
+data FunDecl = Fun Type Id ParamDecl Stmt | Proc Id ParamDecl Stmt deriving Show
 data Stmt = AtribS Atrib | IfS If {-| ForS ForRule-} | While LogicExp Stmt | VarS VarDecl | FunS FunCall | Return Exp | Break | Continue | Write [Exp] | Read [Id] | Stmts [Stmt] deriving Show
 data Atrib = Atrib Id Assign Exp {-| AtribPlus String += Exp1-} deriving Show
 data Exp = AExp ArithmeticExp | LExp LogicExp deriving Show
@@ -21,8 +21,8 @@ data Assign = Assign | AssignPlus | AssignMinus deriving Show
 data PostFixOp = PlusPlusPost | MinusMinusPost deriving Show
 data PreFixOp = Negate | PlusPlusPre | MinusMinusPre deriving Show
 data Id = Id String deriving Show
-data Type = Type String deriving Show
-data Value = IntV Integer | FloatV Double | CharV Char | StringV String deriving Show
+data Type = Integer | Float | String | Char deriving Show
+data Value = IntV Integer | FloatV Double | CharV Char | StringV String | FunV (ParamDecl, Stmt) deriving Show
 data If = If LogicExp Stmt | IfElse LogicExp Stmt Stmt deriving Show
 data LogicExp = LogicExp LogicOp ArithmeticExp ArithmeticExp | BoolExp BoolOp LogicExp LogicExp | Not LogicExp | LogicConst Bool | BoolId String deriving Show
 data LogicOp = Lt | Gt | LEq | GEq | Eq | Diff deriving Show
@@ -41,6 +41,13 @@ data ForAtrib = Ids [Id] | IdAssign [Atrib] deriving Show
 data ForComp = ForId Id | ForComp LogicExp deriving Show
 data ForRight = ForRight [Exp] {-| Id AddAssign Exp1 | Id SubAssign Exp1 | Id AddAssign Exp1 Comma ForRight | Id SubAssign Exp1 Comma ForRight-} deriving Show-}
 
+stringToType :: String -> Type
+stringToType "int" = Integer
+stringToType "float" = Float
+stringToType "char" = Char
+stringToType "string" = String
+stringToType x = error (x ++ " (Type)") 
+
 def = emptyDef{ commentStart = "/*"
               , commentEnd = "*/"
 			  , commentLine = "//"
@@ -52,8 +59,8 @@ def = emptyDef{ commentStart = "/*"
 								  ,"+=", "-=", "*=", "/=", "#=", ">=", "<=", "!=", "%=", "^=", "~=", "&=", "|="
 								  ,"==", "++", "--", "&&", "||"]
               , reservedNames = ["true", "false", "if", "else", "while", "return", "continue", "break"
-								,"read", "write"]
-              , caseSensitive = False}
+								,"read", "write", "proc", "inout", "fun"]
+              , caseSensitive = True}
 
 TokenParser{ parens = m_parens
 		   , braces = m_braces
@@ -72,8 +79,8 @@ TokenParser{ parens = m_parens
 		   , commaSep1 = m_commaSep1
            , whiteSpace = m_whiteSpace } = makeTokenParser def
 
-expparser :: Parser ArithmeticExp
-expparser = try(buildExpressionParser table term) <?> "expression"
+arithmeticexpparser :: Parser ArithmeticExp
+arithmeticexpparser = try(buildExpressionParser table term) <?> "expression"
 
 table = [ [Prefix (m_reservedOp "-" >> return (Neg))]--Alterar ordem para mudar a precedência
 		, [Infix (m_reservedOp "*" >> return (Exp2 Prod)) AssocLeft]
@@ -84,12 +91,12 @@ table = [ [Prefix (m_reservedOp "-" >> return (Neg))]--Alterar ordem para mudar 
 		, [Infix (m_reservedOp "-" >> return (Exp1 Sub)) AssocLeft]
         ]
 
-term = m_parens expparser
-	   <|> try(expparser_aux)
+term = m_parens arithmeticexpparser
+	   <|> try(arithmeticexpparser_aux)
 	   <|> do { f <- funcallparser; return (FunE f)}
        <|> fmap ExpId m_identifier
 
-expparser_aux = try(do { float <- m_float;
+arithmeticexpparser_aux = try(do { float <- m_float;
 					; return (Const (FloatV float))
 					})
 			 <|> do { int <- m_integer;--Devido ao - funcionar como operador unario, coisas como -10 sao interpretadas como Neg const Type 10 e nao const Type 10
@@ -121,9 +128,9 @@ logicterm = m_parens logicexpparser
        <|> fmap BoolId m_identifier
 
 logicexpparser_aux = 
-	do exp1 <- expparser
+	do exp1 <- arithmeticexpparser
 	   rop  <- relationalop
-	   exp2 <- expparser
+	   exp2 <- arithmeticexpparser
 	   return (LogicExp rop exp1 exp2)
 
 relationalop = (m_reservedOp "<"  >> return (Lt))
@@ -133,8 +140,8 @@ relationalop = (m_reservedOp "<"  >> return (Lt))
 		   <|> (m_reservedOp "==" >> return (Eq))
 		   <|> (m_reservedOp "!=" >> return (Diff))
 
-exp_parser :: Parser Exp
-exp_parser = do { a <- expparser; return (AExp a)}
+expparser :: Parser Exp
+expparser = do { a <- arithmeticexpparser; return (AExp a)}
 		 <|> do { l <- logicexpparser; return (LExp l)}
 
 ifparser :: Parser Stmt
@@ -161,7 +168,7 @@ assignop = (m_reservedOp "+="  >> return (AssignPlus))
 vardeclparser :: Parser VarDecl
 vardeclparser = do { t <- m_identifier
 					   ; ids <- (m_commaSep id1)
-					   ; return (VarDecl (Type t) (ids))
+					   ; return (VarDecl (stringToType t) (ids))
 					   }
 			 where id1 = do { a <- atribparser; return (IdOrAtribA a)}
 					 <|> do { id <- m_identifier; return (IdOrAtribI (Id id))}
@@ -169,7 +176,7 @@ vardeclparser = do { t <- m_identifier
 atribparser :: Parser Atrib
 atribparser = try(do { id <- m_identifier
 				 ; assign <- assignop
-				 ; e <- exp_parser
+				 ; e <- expparser
 				 ; return (Atrib (Id id) assign e)
 				 })
 
@@ -180,11 +187,11 @@ funcallparser = try(
 					   ; return (FunCall (Id id) (Param e))
 					   }
 					)
-					where exps = do{ e <- exp_parser; return e}
+					where exps = do{ e <- expparser; return e}
 
 stmtparser :: Parser Stmt
 stmtparser = do { fmap Stmts (stmt1 `endBy` m_semi)}
-stmt1 = do { m_reserved "return"; e <- exp_parser; return (Return e)}
+stmt1 = do { m_reserved "return"; e <- expparser; return (Return e)}
 	  <|> do { a <- atribparser; return (AtribS a)}
 	  <|> do { f <- funcallparser; return (FunS f)}
 	  <|> do { v <- vardeclparser; return (VarS v)}
@@ -200,42 +207,34 @@ stmt1 = do { m_reserved "return"; e <- exp_parser; return (Return e)}
 			 ; e <- many (exps)
 			 ; return (Write e)
 			 }
-			 where exps = do{ e <- exp_parser; return e}
+			 where exps = do{ e <- expparser; return e}
 
 fundeclparser :: Parser P
-fundeclparser = try (
-					do { funtype <- m_identifier
-					   ; funid <- m_identifier
-					   ; p <- m_parens (m_commaSep params)
-					   ; stmt <- m_braces stmtparser
-					   ; return (FunP (Fun (Type funtype) (Id funid) (ParamDecl p) stmt))
-					   }
-					)
+fundeclparser = do { m_reserved "fun"
+				   ; funtype <- m_identifier
+				   ; funid <- m_identifier
+				   ; p <- m_parens (m_commaSep params)
+				   ; stmt <- m_braces stmtparser
+				   ; return (FunP (Fun (stringToType funtype) (Id funid) (ParamDecl p) stmt))
+				   }
+			<|> do { m_reserved "proc"
+				   ; funid <- m_identifier
+				   ; p <- m_parens (m_commaSep params)
+				   ; stmt <- m_braces stmtparser
+				   ; return (FunP (Proc (Id funid) (ParamDecl p) stmt))
+				   }
 				where params = do { t <- m_identifier
 								  ; id <- m_identifier
-								  ; return (Type t, Id id)
+								  ; return (stringToType t, Id id)
 								  }
 
 programparser :: Parser P
 programparser = do { fmap P (many (do{ x <- p1; return x }))}
 p1 = fundeclparser
- <|> do { v <- vardeclparser; return (VarP v)}
+ <|> do { v <- vardeclparser; m_semi; return (VarP v)}
 
 mainparser :: Parser P
 mainparser = m_whiteSpace >> programparser <* eof
-
-play :: String -> IO ()
-play inp = case parse mainparser "" inp of
-             { Left err -> print err
-             ; Right ans -> print ans
-             }
-
-principal :: String -> IO ()
-principal fn =  play (unsafePerformIO (leia fn))
-
-leia fn = do x <- openFile fn ReadMode
-             y <- hGetContents x
-             return (y)
 
 --Exemplo de como usar parsec abaixo
 --link para tutorial https://wiki.haskell.org/Parsing_expressions_and_statements
@@ -264,13 +263,13 @@ TokenParser{ parens = m_parens
            , reserved = m_reserved
            , semiSep1 = m_semiSep1
            , whiteSpace = m_whiteSpace } = makeTokenParser def
-expparser :: Parser Expr
-expparser = buildExpressionParser table term <?> "expression"
+arithmeticexpparser :: Parser Expr
+arithmeticexpparser = buildExpressionParser table term <?> "expression"
 table = [ [Prefix (m_reservedOp "~" >> return (Uno Not))]
         , [Infix (m_reservedOp "&" >> return (Duo And)) AssocLeft]
         , [Infix (m_reservedOp "=" >> return (Duo Iff)) AssocLeft]
         ]
-term = m_parens expparser
+term = m_parens arithmeticexpparser
        <|> fmap Var m_identifier
        <|> (m_reserved "true" >> return (Con True))
        <|> (m_reserved "false" >> return (Con False))
@@ -282,11 +281,11 @@ mainparser = m_whiteSpace >> stmtparser <* eof
       stmt1 = (m_reserved "nop" >> return Nop)
               <|> do { v <- m_identifier
                      ; m_reservedOp ":="
-                     ; e <- expparser
+                     ; e <- arithmeticexpparser
                      ; return (v := e)
                      }
               <|> do { m_reserved "if"
-                     ; b <- expparser
+                     ; b <- arithmeticexpparser
                      ; m_reserved "then"
                      ; p <- stmtparser
                      ; m_reserved "else"
@@ -295,7 +294,7 @@ mainparser = m_whiteSpace >> stmtparser <* eof
                      ; return (If b p q)
                      }
               <|> do { m_reserved "while"
-                     ; b <- expparser
+                     ; b <- arithmeticexpparser
                      ; m_reserved "do"
                      ; p <- stmtparser
                      ; m_reserved "od"
