@@ -21,7 +21,7 @@ data Assign = Assign | AssignPlus | AssignMinus deriving Show
 data PostFixOp = PlusPlusPost | MinusMinusPost deriving Show
 data PreFixOp = Negate | PlusPlusPre | MinusMinusPre deriving Show
 data Id = Id String deriving Show
-data Type = Integer | Float | String | Char deriving Show
+data Type = Integer | Float | String | Char deriving (Show, Eq)
 data Value = IntV Integer | FloatV Double | CharV Char | StringV String | FunV (ParamDecl, Stmt) deriving Show
 data If = If LogicExp Stmt | IfElse LogicExp Stmt Stmt deriving Show
 data LogicExp = LogicExp LogicOp ArithmeticExp ArithmeticExp | BoolExp BoolOp LogicExp LogicExp | Not LogicExp | LogicConst Bool | BoolId String deriving Show
@@ -40,6 +40,12 @@ data Param = Param [Exp] deriving Show
 data ForAtrib = Ids [Id] | IdAssign [Atrib] deriving Show
 data ForComp = ForId Id | ForComp LogicExp deriving Show
 data ForRight = ForRight [Exp] {-| Id AddAssign Exp1 | Id SubAssign Exp1 | Id AddAssign Exp1 Comma ForRight | Id SubAssign Exp1 Comma ForRight-} deriving Show-}
+
+instance Eq Value where
+	IntV x == IntV y     = x == y
+	FloatV x == FloatV y = x == y
+	CharV x == CharV y   = x == y
+	StringV x == StringV y = x == y		
 
 stringToType :: String -> Type
 stringToType "int" = Integer
