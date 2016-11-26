@@ -42,11 +42,11 @@ addFun symTab funTable fun = if findFun funTable fun == ("", [], Integer, -1)
 rmFun :: [Symbol] -> [Fun] -> (Name, Escope) -> ([Symbol], [Fun])
 rmFun symTab [] _ = (symTab, [])
 rmFun symTab (f:funTab) (nm, es) = let (fNm, _, _, fEs) = f
-                                 in if fNm == nm && fEs == es
-                                        then do let cntSymTab = rmSymb symTab es
-                                                (cntSymTab, funTab)
-                                        else let (symT, funT) = rmFun symTab funTab (nm, es)
-                                             in (symT, f:funT)
+                                   in if fNm == nm && fEs == es
+                                          then do let cntSymTab = rmSymb symTab es
+                                                  (cntSymTab, funTab)
+                                          else let (symT, funT) = rmFun symTab funTab (nm, es)
+                                               in (symT, f:funT)
     
 paramToSymbol :: Parametro -> Escope -> Symbol
 paramToSymbol (pName, Integer) e = (pName, IntV 0, Integer, e)
