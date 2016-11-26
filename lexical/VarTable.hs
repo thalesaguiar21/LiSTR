@@ -1,3 +1,4 @@
+module VarTable where
 import Parser
 
 import System.IO
@@ -9,7 +10,7 @@ import Text.Parsec.Expr
 import Text.Parsec.Token
 import Text.Parsec.Language
 import Data.Typeable
-    
+
 type Name = String
 type Escope = Integer
 type Symbol = (Name, Value, Type, Escope)
@@ -20,16 +21,20 @@ findSymb (h:t) (n0, e0) = let (n1, _, _, e1) = h in
                         if ((n0 == n1) && (e0 == e1)) then h
                         else findSymb t (n0, e0) 
 
-add :: [Symbol] -> Symbol -> [Symbol]
-add [] symb = [symb]
-add table symb = let (n, _, _, e) = symb
-                     found = findSymb table (n, e)
-                 in if found == ("", (IntV (-1)), Integer, -1) then symb:table
-                    else table
+addSymb :: [Symbol] -> Symbol -> [Symbol]
+addSymb [] symb = [symb]
+addSymb table symb = let (n, _, _, e) = symb
+                         found = findSymb table (n, e)
+                     in if found == ("", (IntV (-1)), Integer, -1) then symb:table
+                        else table
 
-addSymb :: [Symbol] -> [Name] -> String -> [Symbol]
-addSymb [] ids t = [(id, IntV 0, stringToType t, 0) | id <- ids]
-addSymb st ids t = st ++ [(id, IntV 0, stringToType t, 0) | id <- ids]
+addSymbols :: [Symbol] -> [Symbol] -> [Symbol]
+addSymbols symTab []            = symTab
+addSymbols symTab (sym:symbols) = addSymbols (addSymb symTab sym) symbols 
+
+populate :: [Symbol] -> [Name] -> String -> [Symbol]
+populate [] ids t = [(id, IntV 0, stringToType t, 0) | id <- ids]
+populate st ids t = st ++ [(id, IntV 0, stringToType t, 0) | id <- ids]
 
 rmSymb :: [Symbol] -> Escope -> [Symbol]
 rmSymb [] _ = []
