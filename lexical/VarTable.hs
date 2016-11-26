@@ -223,13 +223,21 @@ playWhile2 l b (Stmts (IfS (IfElse exp (Stmts stmt0) (Stmts stmt1)):t)) st = if 
                                                               (io0, ancestor s0)
                                                          else let (io1, s1) = (playWhile2 l b (Stmts (stmt1 ++ t)) ([], SymTable st)) in
                                                               (io1, ancestor s1)
-playWhile2 l b (Stmts (h:t)) st = playWhile2 l b (Stmts t) (snd(playStmt h st))
+playWhile2 l b (Stmts (h:t)) st = let (io0, s0) = (playStmt h st)
+                                      (io1, s1) = playWhile2 l b (Stmts t) (s0)in
+                                      (io0 >> io1, s1)
+
+isString :: Value -> (Bool, String)
+isString (StringV v) = (True, v)
+isString (CharV c) = (True, c : [])
+isString _ = (False, "")
 
 write :: [Exp] -> SymTable -> IO ()
 write [] _ = return ()
-write (h:t) st = let (v, t0) = eval h st in
-                     if (null t ) then print v
-					 else putStr (show v ++ " ") >> write t st
+write (h:t) st = let (v, t0) = eval h st 
+                     (b, str) = isString v in
+                     if (b) then putStr str--Allows \n
+                     else putStr ((show v) ++ " ") >> write t st
 
 playStmt :: Stmt -> SymTable -> (IO(), SymTable)
 playStmt (Stmts []) st = (return (), st)
