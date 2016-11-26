@@ -4,6 +4,7 @@ module DataTypes.Racional
     , numerator
     , denominator
     , toFloat
+    , divR
     ) where
 
 data Racional = PRacional Int Int
@@ -52,10 +53,10 @@ instance Num Racional where
 
     fromInteger i = PRacional (fromInteger i) 1
 
-{-    r1 / r2 = let r = nu r1 * de r2
-                  l = de r1 * nu r2
-              in PRacional r l
--}
+divR :: Racional -> Racional -> Racional
+divR r1 r2 = let r = nu r1 * de r2
+                 l = de r1 * nu r2
+             in PRacional r l
 
 numerator :: Racional -> Int
 numerator r1 = nu r1
