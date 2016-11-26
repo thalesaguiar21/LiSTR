@@ -1,5 +1,5 @@
-import Parser
-import Racional
+import Lexical.Parser
+import DataTypes.Racional
 
 import Control.Monad.Writer
 import System.IO
@@ -240,9 +240,9 @@ playStmt (IfS (IfElse exp stmt0 stmt1)) st = if (evalL exp st)
 											 else ancestor (playStmt stmt1 ([], SymTable st))
 playStmt (While exp stmt) st = ancestor (playWhile1 exp stmt ([], SymTable st))
 playStmt (Read []) st = error "read must receive an argument"
-playStmt (Read l) st = --readV l st
+playStmt (Read l) st = error "erro"--readV l st
 playStmt (Write []) st = error "write must receive an argument"
-playStmt (Write exps) st = error "asd"--write exps st
+playStmt (Write exps) st = error "erro"--write exps st
 playStmt _ st = st
 
 ancestor :: SymTable -> SymTable

@@ -1,6 +1,6 @@
 module Lexical.Parser where
 
-import Racional
+import DataTypes.Racional
 
 import System.IO
 import System.IO.Unsafe
@@ -24,7 +24,7 @@ data PostFixOp = PlusPlusPost | MinusMinusPost deriving Show
 data PreFixOp = Negate | PlusPlusPre | MinusMinusPre deriving Show
 data Id = Id String deriving Show
 data Type = Int | Float | String | Char | Racional | Bool deriving Show
-data Value = IntV Int | FloatV Double | CharV Char | StringV String | RacionalV Racional | BoolV Bool deriving Read
+data Value = IntV Int | FloatV Double | CharV Char | StringV String | RacionalV Racional | BoolV Bool-- deriving Read
 data If = If LogicExp Stmt | IfElse LogicExp Stmt Stmt deriving Show
 data LogicExp = LogicExp LogicOp ArithmeticExp ArithmeticExp | BoolExp BoolOp LogicExp LogicExp | Not LogicExp | LogicConst Bool | BoolId String deriving Show
 data LogicOp = Lt | Gt | LEq | GEq | Eq | Diff deriving Show
