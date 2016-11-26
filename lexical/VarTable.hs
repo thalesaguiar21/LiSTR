@@ -111,7 +111,7 @@ prod v1 v2 = conversion prod v1 v2
 
 divide :: (Value, Type) -> (Value, Type) -> (Value, Type)
 divide (IntV n, Int) (IntV m, Int) = (RacionalV (PRacional n m), Racional)
---divide (RacionalV n, Racional) (RacionalV m, Racional) = (RacionalV (n / m), Racional)
+divide (RacionalV n, Racional) (RacionalV m, Racional) = (RacionalV (divR n m), Racional)
 divide (FloatV n, Float) (FloatV m, Float) = (FloatV (n / m), Float)
 divide v1 v2 = conversion divide v1 v2
 
@@ -205,45 +205,59 @@ varToSymbol String (IdOrAtribI (Id id)) _ = (id, StringV "", String)
 varToSymbol type0 (IdOrAtribA (Atrib (Id id) Assign exp)) st = let (v, type1) = eval exp st in
                                                                    atrib (id, (IntV 0), type0) (v, type1)
 
-playWhile1 :: LogicExp -> Stmt -> SymTable -> SymTable
+playWhile1 :: LogicExp -> Stmt -> SymTable -> (IO (), SymTable)
 playWhile1 l s st = if (evalL l st)
-				   then playWhile2 l s s st
-				   else st
+                   then playWhile2 l s s st
+                   else (return (), st)
 
-playWhile2 :: LogicExp -> Stmt -> Stmt -> SymTable -> SymTable
+playWhile2 :: LogicExp -> Stmt -> Stmt -> SymTable -> (IO (), SymTable)
 playWhile2 l b (Stmts []) st = playWhile1 l b st
 playWhile2 l b (Stmts (Continue:t)) st = playWhile1 l b st
-playWhile2 _ _ (Stmts (Break:t)) st = st
+playWhile2 _ _ (Stmts (Break:t)) st = (return (), st)
 playWhile2 l b (Stmts (IfS (If exp (Stmts stmt)):t)) st = if (evalL exp st)
-											 then ancestor (playWhile2 l b (Stmts (stmt ++ t)) ([], SymTable st))
-											 else playWhile2 l b (Stmts t) st
+                                             then let (io0, s0) = (playWhile2 l b (Stmts (stmt ++ t)) ([], SymTable st)) in
+                                                  (io0, ancestor s0)
+                                             else playWhile2 l b (Stmts t) st
 playWhile2 l b (Stmts (IfS (IfElse exp (Stmts stmt0) (Stmts stmt1)):t)) st = if (evalL exp st)
-											             then ancestor (playWhile2 l b (Stmts (stmt0 ++ t)) ([], SymTable st))
-											             else ancestor (playWhile2 l b (Stmts (stmt1 ++ t)) ([], SymTable st))
-playWhile2 l b (Stmts (h:t)) st = playWhile2 l b (Stmts t) (playStmt h st)
+                                                         then let (io0, s0) = (playWhile2 l b (Stmts (stmt0 ++ t)) ([], SymTable st)) in
+                                                              (io0, ancestor s0)
+                                                         else let (io1, s1) = (playWhile2 l b (Stmts (stmt1 ++ t)) ([], SymTable st)) in
+                                                              (io1, ancestor s1)
+playWhile2 l b (Stmts (h:t)) st = playWhile2 l b (Stmts t) (snd(playStmt h st))
 
-playStmt :: Stmt -> SymTable -> SymTable
-playStmt (Stmts []) st = st
-playStmt (Stmts (h:t)) st = playStmt (Stmts t) (playStmt h st)
-playStmt (VarS (VarDecl type0 [])) st = st
+write :: [Exp] -> SymTable -> IO ()
+write [] _ = return ()
+write (h:t) st = let (v, t0) = eval h st in
+                     if (null t ) then print v
+					 else putStr (show v ++ " ") >> write t st
+
+playStmt :: Stmt -> SymTable -> (IO(), SymTable)
+playStmt (Stmts []) st = (return (), st)
+playStmt (Stmts (h:t)) st = let (io0, s0) = (playStmt h st)
+                                (io1, s1) = playStmt (Stmts t) (s0) in
+                                (io0 >> io1, s1)
+playStmt (VarS (VarDecl type0 [])) st = (return (), st)
 playStmt (VarS (VarDecl type0 (h:t))) (st0, anc0) = let (n, _, _) = (findSymb (st0, Null) (getName h)) in
                                                        if (n == " Not Found") then 
-												          let (st1, anc1) = (playStmt (VarS (VarDecl type0 t)) (st0, anc0)) in
-													      ((varToSymbol type0 h (st1, anc1)) : st1, anc1)
+                                                          let (_, (st1, anc1)) = (playStmt (VarS (VarDecl type0 t)) (st0, anc0)) in
+                                                          (return (), ((varToSymbol type0 h (st1, anc1)) : st1, anc1))
                                                        else error $ "variable " ++ n ++" already declared"
-playStmt (AtribS (Atrib (Id id) assign exp)) st = atribSymb id assign (eval exp st) st
+playStmt (AtribS (Atrib (Id id) assign exp)) st = (return (), atribSymb id assign (eval exp st) st)
 playStmt (IfS (If exp stmt)) st = if (evalL exp st)
-                                  then ancestor (playStmt stmt ([], SymTable st))
-								  else st
+                                  then (return (), ancestor (snd(playStmt stmt ([], SymTable st))))
+                                  else (return (), st)
 playStmt (IfS (IfElse exp stmt0 stmt1)) st = if (evalL exp st)
-                                             then ancestor (playStmt stmt0 ([], SymTable st))
-											 else ancestor (playStmt stmt1 ([], SymTable st))
-playStmt (While exp stmt) st = ancestor (playWhile1 exp stmt ([], SymTable st))
+                                             then let (io0, s0) = (playStmt stmt0 ([], SymTable st)) in
+                                                  (io0, ancestor (s0))
+                                             else let (io1, s1) = (playStmt stmt1 ([], SymTable st)) in
+                                                  (io1, ancestor (s1))
+playStmt (While exp stmt) st = let (io0, s0) = (playWhile1 exp stmt ([], SymTable st)) in
+                                   (io0, ancestor (s0))
 playStmt (Read []) st = error "read must receive an argument"
-playStmt (Read l) st = error "erro"--readV l st
+playStmt (Read l) st = error "erro read ainda nao foi implementado"--readV l st
 playStmt (Write []) st = error "write must receive an argument"
-playStmt (Write exps) st = error "erro"--write exps st
-playStmt _ st = st
+playStmt (Write exps) st = (write exps st, st)
+playStmt _ st = (return (), st)
 
 ancestor :: SymTable -> SymTable
 ancestor (_, SymTable st) = st
@@ -253,20 +267,27 @@ getName :: IdOrAtrib -> Name
 getName (IdOrAtribI (Id id)) = id
 getName (IdOrAtribA (Atrib (Id id) _ _)) = id
 
-playProgram :: P -> [Symbol] -> [Symbol]
-playProgram (P []) st = st
+playProgram :: P -> [Symbol] -> (IO (),[Symbol])
+playProgram (P []) st = (return(), st)
 playProgram (P ((FunP (Proc (Id id) (ParamDecl []) stmt)) : t)) st = if (id == "main") then 
-                                                           fst(ancestor(playStmt stmt ([], SymTable (st, Null))))
-                                                       else playProgram (P t) st
+                                                                        let (io0, s0) = (playStmt stmt ([], SymTable (st, Null))) in
+                                                                        (io0, fst(ancestor(s0)))
+                                                                     else playProgram (P t) st
 playProgram (P ((FunP (Proc (Id id) (ParamDecl _) stmt)) : t)) st = if (id == "main") then
                                                                        error ("main must receive only one argument")
                                                                     else playProgram (P t) st 
 playProgram (P ((FunP (Fun _ (Id id) _ _)) : t)) st = if (id == "main") then error $ "main must be a procedure" else playProgram (P t) st 
-playProgram (P ((VarP v) : t)) st = playProgram (P t) (playProgram (VarP v) st)
-playProgram (VarP (VarDecl type0 [])) st = st
-playProgram (VarP (VarDecl type0 (h:t))) st = let (n, _, _) = (findSymb (st, Null) (getName h)) in
-                                                 if (n == " Not Found") then (varToSymbol type0 h (st, Null)) : (playProgram (VarP (VarDecl type0 t)) st)
-                                                 else error $ "variable " ++ n ++" already declared"
+playProgram (P ((VarP v) : t)) st = let (io0, s0) = (playProgram (VarP v) st)
+                                        (io1, s1) = playProgram (P t) (s0) in
+                                        (io0 >> io1, s1)
+playProgram (VarP (VarDecl type0 [])) st = (return (), st)
+playProgram (VarP (VarDecl type0 (h:t))) st = let (n, _, _) = (findSymb (st, Null) (getName h))
+                                                  (io, s) = (playProgram (VarP (VarDecl type0 t)) st) in
+                                                  if (n == " Not Found") then (io, (varToSymbol type0 h (st, Null)) : s)
+                                                  else error $ "variable " ++ n ++ " already declared"
+
+m :: String -> IO()
+m f = fst(playProgram (principal2 f) [] )
 
 play2 :: String -> P
 play2 inp = case parse mainparser "" inp of
