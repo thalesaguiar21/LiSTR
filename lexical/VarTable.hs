@@ -1,5 +1,5 @@
-module VarTable where
-import Parser
+module Lexical.VarTable where
+import Lexical.Parser
 
 import System.IO
 import System.IO.Unsafe

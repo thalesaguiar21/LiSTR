@@ -2,7 +2,7 @@ module Complex
     ( Complex (..)
     , re
     , im
-    , div
+    , divi
     , conj
     , arg
     , toPolar
@@ -50,12 +50,12 @@ instance Num Complex where
   fromInteger number = RComplex (fromInteger number)
 
 -- Divisão entre complexos
-div :: Complex -> Complex -> Complex
-c1 `div` c2 = let nume = c1 * (conj c2)
-                  deno = c2 * (conj c2)
-                  r = re nume / re deno
-                  i = im nume / im deno
-              in PComplex r i
+divi :: Complex -> Complex -> Complex
+c1 `divi` c2 = let nume = c1 * (conj c2)
+                   deno = c2 * (conj c2)
+                   r = re nume / re deno
+                   i = im nume / im deno
+               in PComplex r i
 
 -- Conjugado de um número complexo
 conj :: Complex -> Complex

@@ -1,5 +1,5 @@
-import Parser
-import VarTable
+import Lexical.Parser
+import Lexical.VarTable
 
 import System.IO
 import System.IO.Unsafe

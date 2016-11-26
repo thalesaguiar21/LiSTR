@@ -1,4 +1,4 @@
-module Parser where
+module Lexical.Parser where
 
 import System.IO
 import System.IO.Unsafe
