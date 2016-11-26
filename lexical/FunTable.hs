@@ -1,3 +1,5 @@
+module Lexical.FunTable where
+
 import Lexical.Parser
 import Lexical.VarTable
 

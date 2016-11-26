@@ -1,4 +1,4 @@
-module Vector
+module DataTypes.Analytic.Vector
     ( Vector (..)
     , (|+|)
     , (|-|)

@@ -1,4 +1,4 @@
-module Vector3
+module DataTypes.Analytic.Vector3
     ( Vector3 (..)
     , (|+|)
     , (|-|)

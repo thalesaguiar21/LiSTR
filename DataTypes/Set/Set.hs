@@ -1,4 +1,4 @@
-module Set
+module DataTypes.Set.Set
     ( Set (..)
     , isEmpty
     , in'

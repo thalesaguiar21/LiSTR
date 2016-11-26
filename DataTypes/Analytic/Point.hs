@@ -1,4 +1,4 @@
-module Analytic.Point
+module DataTypes.Analytic.Point
 		( Point2 (..)
 		, Point3 (..)
 		) where

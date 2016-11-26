@@ -1,4 +1,4 @@
-module Matrix
+module DataTypes.Matrix
     (Matrix (..)
     {-
     , det
