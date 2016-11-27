@@ -78,6 +78,7 @@ subMatrix :: Num t => [[t]] -> [[t]] -> [[t]]
 subMatrix m1 m2 = [subLine (m1!!i) (m2!!i) | i <- [0..((length m1)-1)] ]
 -- END SUBTRAÇÃO ///
 
+
 size :: Matrix t -> (Int, Int)
 size (CMatrix i j m) = (i, j)
 
@@ -86,7 +87,7 @@ get (CMatrix k l m) i j = if (k<=i) || (l<=j) || (i<0) || (j<0) then error "Indi
                           else ((m !! i) !! j)
 
 set :: Matrix t -> Int -> Int -> t -> Matrix t
-set (CMatrix i j m) linha coluna v = (CMatrix i j [ [if (l==linha) && (c==coluna) then v else ((m!!l)!!j) | c<-[0..(j-1)] ] | l<-[0..(i-1)] ])
+set (CMatrix i j m) linha coluna v = (CMatrix i j [ [if (l==linha) && (c==coluna) then v else ((m!!l)!!c) | c<-[0..(j-1)] ] | l<-[0..(i-1)] ])
 
 line :: Num t => Matrix t -> Int -> [t]
 line (CMatrix i j m) l = if l>=(length m) || l<0 then error "Esta linha não existe"
@@ -102,4 +103,27 @@ dotProd v1 v2 = if (length v1)/=(length v1) then error "Não é possivel multipl
 
 ident :: Num t => Int -> Matrix t
 ident k = (CMatrix k k [[if i==d then 1 else 0 | i<-[0..k] ] | d<-[0..k] ] )
+
+
+-- DETERMINANTE
+det :: Num t => Matrix t -> t
+det (CMatrix i j m) = if i/=j then error "Apenas matrizes quadradas possuem determinante"
+                      else calcDet m
+
+calcDet :: Num t => [[t]] -> t
+calcDet [[a]] = a
+calcDet m = let l1 = (m!!0) 
+                ls = length l1
+            in
+              sum [ ((-1)^j)*(l1!!j)*(calcDet (peaceOfMatrix m 0 j)) | j<-[0..ls-1] ]
+
+peaceOfMatrix :: Num t => [[t]] -> Int -> Int -> [[t]]
+peaceOfMatrix m linha coluna = let  nL = length m
+                                    nC = length (m!!0)
+                                in
+                                [[ ((m!!l)!!c) | c<-([0..coluna-1]++[coluna+1..nC-1]) ] | l<-([0..linha-1]++[linha+1..nL-1]) ]
+-- END DETERMINANTE
+
+
+
 
