@@ -5,10 +5,10 @@ module DataTypes.Matrix
     , line
     , colum
     , ident
+    , det
     {-
     , transpose
     , inverse
-    , det
     -}
     ) where
 
@@ -102,10 +102,10 @@ dotProd v1 v2 = if (length v1)/=(length v1) then error "Não é possivel multipl
                 else sum [ (v1!!i)*(v2!!i) | i <- [0..((length v1)-1)]]
 
 ident :: Num t => Int -> Matrix t
-ident k = (CMatrix k k [[if i==d then 1 else 0 | i<-[0..k] ] | d<-[0..k] ] )
+ident k = (CMatrix k k [[if i==d then 1 else 0 | i<-[0..k-1] ] | d<-[0..k-1] ] )
 
 
--- DETERMINANTE
+-- DETERMINANTE \\\
 det :: Num t => Matrix t -> t
 det (CMatrix i j m) = if i/=j then error "Apenas matrizes quadradas possuem determinante"
                       else calcDet m
@@ -122,8 +122,9 @@ peaceOfMatrix m linha coluna = let  nL = length m
                                     nC = length (m!!0)
                                 in
                                 [[ ((m!!l)!!c) | c<-([0..coluna-1]++[coluna+1..nC-1]) ] | l<-([0..linha-1]++[linha+1..nL-1]) ]
--- END DETERMINANTE
+-- END DETERMINANTE ///
 
-
+transpose :: Num t => Matrix t -> Matrix t
+transpose (CMatrix i j m) = (CMatrix j i [ [(m!!c)!!l | c<-[0..i-1] ] | l<-[0..j-1] ])
 
 
