@@ -7,6 +7,8 @@ module DataTypes.Racional
     , divR
     ) where
 
+import Data.Char
+
 data Racional = PRacional Int Int
 
 nu :: Racional -> Int
@@ -27,6 +29,24 @@ mmc a b = let n = a*b
               d = mdc a b
             in
           quot n d
+
+whites :: String -> String
+whites str = dropWhile isSpace str
+
+nextNumber :: String -> (String, String)
+nextNumber str = span isDigit (whites str)
+
+instance Read Racional where
+    readsPrec _ input = let (v1, r0) = nextNumber input
+                            n = read v1 :: Int
+                            (r1) = whites r0 in
+                            if (null r1) then [(PRacional n 1, r1)]
+                            else if (head r1 /= '/') then [(PRacional n 1, r1)]
+                                 else let d:r2 = r1
+                                          (v2, s) = nextNumber (r2)
+                                          m = read v2 :: Int in
+                                          if(d == '/') then [(PRacional n m, s)]
+                                          else []
 
 instance Show Racional where
   show (PRacional r l) = if r /= 0 then show r ++ " / " ++ show l
