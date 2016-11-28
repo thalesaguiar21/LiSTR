@@ -55,6 +55,9 @@ instance Show Racional where
 instance Eq Racional where
   r1 == r2 = (nu r1) == (nu r2) && (de r1) == (de r2)
 
+instance Ord Racional where
+  r1 <= r2 = (signum (r1 - r2)) <= 0
+
 instance Num Racional where
     r1 + r2 = PRacional ((nu r1 * de r2) + (nu r2 * de r1)) ((de r1)*(de r2))
 
