@@ -16,16 +16,16 @@ data FunDecl = Fun Type Id ParamDecl Stmt | Proc Id ParamDecl Stmt deriving Show
 data Stmt = AtribS Atrib | IfS If {-| ForS ForRule-} | While LogicExp Stmt | VarS VarDecl | FunS FunCall | Return Exp | Break | Continue | Write [Exp] | Read [Id] | Stmts [Stmt] deriving Show
 data Atrib = Atrib Id Assign Exp deriving Show
 data Exp = AExp ArithmeticExp | LExp LogicExp deriving Show
-data ArithmeticExp = Exp BinaryOp ArithmeticExp ArithmeticExp | ExpId String | Neg ArithmeticExp | FunE FunCall | Const Value | Post PostFixOp Id | Pre PreFixOp Id deriving Show
+data ArithmeticExp = Exp BinaryOp ArithmeticExp ArithmeticExp | ExpId Id | Neg ArithmeticExp | FunE FunCall | Const Value | Post PostFixOp Id | Pre PreFixOp Id deriving Show
 data BinaryOp = Add | Sub | Prod | Div | Mod | VecProd deriving Show
 data Assign = Assign | AssignPlus | AssignMinus deriving Show
 data PostFixOp = PlusPlusPost | MinusMinusPost deriving Show
 data PreFixOp = Negate | PlusPlusPre | MinusMinusPre deriving Show
-data Id = Id String deriving (Eq, Show)
-data Type = Int | Float | String | Char | Racional | Bool | StructAux String | Struct Id [(Type, Id)] deriving (Eq, Show)
-data Value = IntV Int | FloatV Double | CharV Char | StringV String | RacionalV Racional | BoolV Bool | StructV Type [Value]
+data Id = Id String | StructId [Id] deriving (Eq, Show)
+data Type = Int | Float | String | Char | Racional | Bool | StructAux String | Struct Id [(Type, Id)] deriving (Eq, Show)--struct id = type name, [(type, Id)] = field type and id
+data Value = IntV Int | FloatV Double | CharV Char | StringV String | RacionalV Racional | BoolV Bool | StructV Type [Value]--structV type = struct type, contains field types and name, value = field value
 data If = If LogicExp Stmt | IfElse LogicExp Stmt Stmt deriving Show
-data LogicExp = LogicExp LogicOp ArithmeticExp ArithmeticExp | BoolExp BoolOp LogicExp LogicExp | Not LogicExp | LogicConst Bool | BoolId String deriving Show
+data LogicExp = LogicExp LogicOp ArithmeticExp ArithmeticExp | BoolExp BoolOp LogicExp LogicExp | Not LogicExp | LogicConst Bool | BoolId Id deriving Show
 data LogicOp = Lt | Gt | LEq | GEq | Eq | Diff deriving Show
 data BoolOp = And | Or deriving Show
 data VarDecl = VarDecl Type [IdOrAtrib] deriving Show
@@ -36,7 +36,7 @@ data Param = Param [Exp] deriving Show
 {-data ForRule = For111 Type ForAtrib ForComp ForRight Stmt | For110 Type ForAtrib ForComp          Stmt
              | For101 Type ForAtrib         ForRight Stmt | For100 Type ForAtrib                  Stmt
              | For011               ForComp ForRight Stmt | For010               ForComp          Stmt
-             | For001                       ForRight Stmt | For000                                Stmt 
+             | For001                       ForRight Stmt | For000                                Stmt
               deriving Show
 data ForAtrib = Ids [Id] | IdAssign [Atrib] deriving Show
 data ForComp = ForId Id | ForComp LogicExp deriving Show
@@ -95,6 +95,7 @@ TokenParser{ parens = m_parens
            , stringLiteral = m_string
            , reservedOp = m_reservedOp
            , reserved = m_reserved
+           , dot = m_dot
            , semi = m_semi
            , semiSep = m_semiSep
            , semiSep1 = m_semiSep1
@@ -118,7 +119,7 @@ table = [ [Prefix (m_reservedOp "-" >> return (Neg))]--Alterar ordem para mudar 
 term = m_parens arithmeticexpparser
        <|> try(arithmeticexpparser_aux)
        <|> do { f <- funcallparser; return (FunE f)}
-       <|> fmap ExpId m_identifier
+       <|> fmap ExpId idparser
 
 arithmeticexpparser_aux = try(do { float <- m_float;
                     ; return (Const (FloatV float))
@@ -132,10 +133,17 @@ arithmeticexpparser_aux = try(do { float <- m_float;
              <|> do { str <- m_string;
                     ; return (Const (StringV str))
                     }
+
+idparser = do { id <- m_identifier
+              ; ids <- many (do{m_dot; x <- m_identifier; return (Id x)})
+              ; if (null ids) then return (Id id)
+                else return (StructId ((Id id) : ids))
+              }
+                    {-
              <|> do { id <- m_identifier
                     ; inc  <- ((m_reservedOp "++" >> return (PlusPlusPost)) <|> (m_reservedOp "--" >> return (MinusMinusPost)))
                     ; return (Post inc (Id id))
-                    }
+                    }-}
 
 logicexpparser :: Parser LogicExp
 logicexpparser = buildExpressionParser logictable logicterm <?> "logicexpression"
@@ -149,7 +157,7 @@ logicterm = m_parens logicexpparser
        <|> (m_reserved "true"  >> return (LogicConst True ))
        <|> (m_reserved "false" >> return (LogicConst False))
        <|> try (logicexpparser_aux)
-       <|> fmap BoolId m_identifier
+       <|> fmap BoolId idparser
 
 logicexpparser_aux = 
     do exp1 <- arithmeticexpparser
