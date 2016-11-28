@@ -1,10 +1,10 @@
-int main(){
+proc main(){
 	int a, b;
 	rational x, y;
 	
 	//A
 	x = a/b;
-	write x n(x) d(x);//n e d sao funcoes que retornam o numerador e denominador, respectivamente. Depois temos de trocar pelo nome correto
+	write x;// n(x) d(x);//n e d sao funcoes que retornam o numerador e denominador, respectivamente. Depois temos de trocar pelo nome correto
 	
 	//B
 	y = a/b;
@@ -13,5 +13,5 @@ int main(){
 	write (x == y);
 	
 	//C
-	write x+y '\n' (-x) '\n' x-y '\n' x*y '\n' inv(x) '\n' x/y;
+	write x+y "\n" (-x) "\n" x-y "\n" x*y "\n" inv(x) "\n" x/y;
 }

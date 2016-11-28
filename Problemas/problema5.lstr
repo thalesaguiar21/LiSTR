@@ -1,7 +1,7 @@
-proc mdc(int n, int m, /*inout*/ int r){//depois tem que colocar proc como palavra reservada para procedimentos e inout para passagem por valor-resultado
+proc mdc(int n, int m, inout int r){
 	if(m % n == 0){
 		r = n;
-	};
+	}
 	if(n % m == 0){
 		r = m;
 	}
@@ -11,12 +11,12 @@ proc mdc(int n, int m, /*inout*/ int r){//depois tem que colocar proc como palav
 		}
 		else{
 			mdc(m, n % m, r);
-		};
-	};
+		}
+	}
 }
 
-int main(){
-	int m, n, r;
+proc main(){
+	int m, n, r = 0;
 	read m n;
 	mdc(m, n, r);
 	write r;
