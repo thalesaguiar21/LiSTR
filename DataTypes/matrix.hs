@@ -6,10 +6,8 @@ module DataTypes.Matrix
     , colum
     , ident
     , det
-    {-
     , transpose
-    , inverse
-    -}
+    --, inverse
     ) where
 
 data Matrix a = CMatrix Int Int [[a]] --(Eq, Num)
@@ -40,11 +38,18 @@ instance Num a => Num (Matrix a) where
 
 
 buildMatrix :: Num t => t -> Int -> Int -> Matrix t
-buildMatrix t i j =  if ((i==0) || (j==0)) then error "O número de linhas e colunas deve ser maior que zero"
+buildMatrix t i j =  if ((i<=0) || (j<=0)) then error "O número de linhas e colunas deve ser maior que zero"
                 else let line = take j (cycle [t])
                 in
                 ( CMatrix i j (take i (cycle [line])) )
 
+readMatrix :: Num t => Int -> Int -> [[t]] -> Matrix t
+readMatrix i j m = if (length m)/=i then error "A matriz inserida não possui o numero de linhas correspondente"
+                   else let l = [length (m!!p) | p<-[0..(length m)-1] ]
+                            columSize = [x | x<-l, x/=j ]
+                   in
+                   if (length columSize)/=0 then error "A matriz inserida não possui o numero de colunas correspondente em todas as linhas"
+                   else (CMatrix i j m)
 
 -- PRINTS \\\
 printAllLines :: Show a => [[a]] -> String
@@ -52,6 +57,7 @@ printAllLines [] = "\n"
 printAllLines (c:b) = startLine c ++ "\n" ++ printAllLines b
 
 startLine :: Show t => [t] -> String
+startLine [] = " |   | "
 startLine [a] = " | " ++ show a ++ " | "
 startLine (a:b) = " | " ++ show a ++ endLine b
 
@@ -101,8 +107,8 @@ dotProd :: Num t => [t] -> [t] -> t
 dotProd v1 v2 = if (length v1)/=(length v1) then error "Não é possivel multiplicar vetores de tamanhos diferentes"
                 else sum [ (v1!!i)*(v2!!i) | i <- [0..((length v1)-1)]]
 
-ident :: Num t => Int -> Matrix t
-ident k = (CMatrix k k [[if i==d then 1 else 0 | i<-[0..k-1] ] | d<-[0..k-1] ] )
+ident :: Num t => Int -> t -> t -> Matrix t
+ident k zero um= (CMatrix k k [[if i==d then um else zero | i<-[0..k-1] ] | d<-[0..k-1] ] )
 
 
 -- DETERMINANTE \\\
@@ -128,3 +134,32 @@ transpose :: Num t => Matrix t -> Matrix t
 transpose (CMatrix i j m) = (CMatrix j i [ [(m!!c)!!l | c<-[0..i-1] ] | l<-[0..j-1] ])
 
 
+-- MATRIZ INVERSA
+inverse :: (Num t, Fractional t) => Matrix t -> Matrix t
+inverse (CMatrix i j m) = snd (gausJordan ((CMatrix i j m), (ident i ((m!!0!!0)-(m!!0!!0)) (fromInteger 1)) ) 0)
+
+gausJordan :: (Num t, Fractional t) => (Matrix t, Matrix t) -> Int -> (Matrix t, Matrix t)
+gausJordan ((CMatrix i j mt1), (CMatrix a b mt2)) k = if k>=j then ((CMatrix i j mt1), (CMatrix a b mt2))
+                                                      else let  (m1, m2) = makeDiagUni ((CMatrix i j mt1), (CMatrix a b mt2)) k
+                                                                m = [[if l/=k then (get m1 l c)-((get m1 l k)*(get m1 k c)) else get m1 l c | c<-[0..j-1]] | l<-[0..i-1]]
+                                                                id = [[if l/=k then (get m2 l c)-((get m1 l k)*(get m2 k c)) else get m2 l c | c<-[0..j-1]] | l<-[0..i-1]]
+                                                      in
+                                                      gausJordan ( (CMatrix i j m),(CMatrix a b id) ) (k+1)
+
+makeDiagUni :: (Num t, Fractional t) => (Matrix t, Matrix t) -> Int -> (Matrix t, Matrix t)
+makeDiagUni ((CMatrix i j m1), (CMatrix a b m2)) k = let id = (CMatrix i j [[ if l==k then (m2!!l!!c)/(m1!!l!!l) else (m2!!l!!c) | c<-[0..j-1] ]| l<-[0..i-1]])
+                                                         m = (CMatrix i j [[ if l==k then (m1!!l!!c)/(m1!!l!!l) else (m1!!l!!c) | c<-[0..j-1] ]| l<-[0..i-1]])
+                                                    in (m, id)
+-- END MATRIZ INVERSA
+
+
+-- Retorna um vetor com as matrizes da fatoração LU: [Gn, Gn-1, ..., G1]
+gs :: (Num t, Fractional t,Eq t) => Matrix t -> Int -> [Matrix t]
+gs (CMatrix i j m) k =  if k==i-1 then []
+                        else
+                        if (length [ m!!l!!k | l<-[k..i-1], m!!l!!k/=0 ])==0 then (gs (CMatrix i j m) (k+1))
+                        else let zero = (m!!0!!0) - (m!!0!!0)
+                                 m1 = [[if l>k && c==k then ((-1)*(m!!l!!c)/(m!!k!!k)) else (get (ident i zero (fromInteger 1)) l c) | c<- [0..j-1] ]| l<-[0..i-1] ]
+                                 g = (CMatrix i j m1)
+                        in
+                        [g] ++ (gs (g*(CMatrix i j m)) (k+1))
