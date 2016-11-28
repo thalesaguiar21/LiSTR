@@ -115,36 +115,6 @@ divide v1 v2 = conversion divide v1 v2
 modulus :: (Value, Type) -> (Value, Type) -> (Value, Type)
 modulus (IntV n, Int) (IntV m, Int) = (IntV (n `mod` m), Int)
 
-lt :: (Value, Type) -> (Value, Type) -> Bool
-lt (IntV n, Int) (IntV m, Int) = (n < m)
-lt (RacionalV n, Racional) (RacionalV m, Racional) = ((numerator (signum (n - m))) < 0)
-lt (FloatV n, Float) (FloatV m, Float) = (n < m)
-
-gt :: (Value, Type) -> (Value, Type) -> Bool
-gt (IntV n, Int) (IntV m, Int) = (n > m)
-gt (RacionalV n, Racional) (RacionalV m, Racional) = ((numerator (signum (n - m))) > 0)
-gt (FloatV n, Float) (FloatV m, Float) = (n > m)
-
-leq :: (Value, Type) -> (Value, Type) -> Bool
-leq (IntV n, Int) (IntV m, Int) = (n <= m)
-leq (RacionalV n, Racional) (RacionalV m, Racional) = ((numerator (signum (n - m))) <= 0)
-leq (FloatV n, Float) (FloatV m, Float) = (n <= m)
-
-geq :: (Value, Type) -> (Value, Type) -> Bool
-geq (IntV n, Int) (IntV m, Int) = (n >= m)
-geq (RacionalV n, Racional) (RacionalV m, Racional) = ((numerator (signum (n - m))) >= 0)
-geq (FloatV n, Float) (FloatV m, Float) = (n >= m)
-
-eq :: (Value, Type) -> (Value, Type) -> Bool
-eq (IntV n, Int) (IntV m, Int) = (n == m)
-eq (RacionalV n, Racional) (RacionalV m, Racional) = (n == m)
-eq (FloatV n, Float) (FloatV m, Float) = (n == m)
-
-diff :: (Value, Type) -> (Value, Type) -> Bool
-diff (IntV n, Int) (IntV m, Int) = (n /= m)
-diff (RacionalV n, Racional) (RacionalV m, Racional) = (n /= m)
-diff (FloatV n, Float) (FloatV m, Float) = (n /= m)
-
 conversion :: ((Value, Type) -> (Value, Type) -> (Value, Type)) -> (Value, Type) -> (Value, Type) -> (Value, Type)
 conversion op (v0, t0) (v1, t1) = if (superType t0 t1) then op (v0, t0) (convertToType v1 t1 t0, t0)
                                   else if (superType t1 t0) then op (convertToType v0 t0 t1, t1) (v1, t1)
@@ -163,28 +133,31 @@ evalA (Const (IntV n)) _ = (IntV n, Int)
 evalA (Const (RacionalV r)) _ = (RacionalV r, Racional)
 evalA (Const (FloatV f)) _ = (FloatV f, Float)
 evalA (Const (StringV s)) _ = (StringV s, String)
-evalA (Exp1 Add exp1 exp2) st = add (evalA exp1 st) (evalA exp2 st)
-evalA (Exp1 Sub exp1 exp2) st = sub (evalA exp1 st) (evalA exp2 st)
-evalA (Exp2 Prod exp1 exp2) st = prod (evalA exp1 st) (evalA exp2 st)
-evalA (Exp2 Div exp1 exp2) st = divide (evalA exp1 st) (evalA exp2 st)
-evalA (Exp2 Mod exp1 exp2) st = modulus (evalA exp1 st) (evalA exp2 st)
---evalA (Exp2 VecProd exp1 exp2) st = vecProd (evalA exp1 st) (evalA exp2 st)
---evalA (Exp2 FunCall exp1 exp2) st = funCall fun
+evalA (Exp Add exp1 exp2) st = add (evalA exp1 st) (evalA exp2 st)
+evalA (Exp Sub exp1 exp2) st = sub (evalA exp1 st) (evalA exp2 st)
+evalA (Exp Prod exp1 exp2) st = prod (evalA exp1 st) (evalA exp2 st)
+evalA (Exp Div exp1 exp2) st = divide (evalA exp1 st) (evalA exp2 st)
+evalA (Exp Mod exp1 exp2) st = modulus (evalA exp1 st) (evalA exp2 st)
+--evalA (Exp VecProd exp1 exp2) st = vecProd (evalA exp1 st) (evalA exp2 st)
+--evalA (Exp FunCall exp1 exp2) st = funCall fun
 --operacoes posfixadas e prefixadas nao foram implementadas
 evalA (Neg exp) st = sub (IntV 0, Int) (evalA exp st)
 evalA exp _ = error $ "couldn't understand the expression " ++ show exp
+
+comp :: (Value -> Value -> Bool) -> (Value, Type) -> (Value, Type) -> Bool
+comp op (v0, t0) (v1, t1) = if (t0 == t1) then (op v0 v1) else error $ "the types aren't comparable"
 
 evalL :: LogicExp -> SymTable -> Bool
 evalL (BoolId id) st =  let (name, value, type0) = findSymb st id in
                           if (name == " Not Found") then error $ "variable " ++ id ++ " not declared"
                           else valueToBool value
 evalL (LogicConst b) _ = b
-evalL (LogicExp Lt exp1 exp2) st = lt (evalA exp1 st) (evalA exp2 st)
-evalL (LogicExp Gt exp1 exp2) st = gt (evalA exp1 st) (evalA exp2 st)
-evalL (LogicExp LEq exp1 exp2) st = leq (evalA exp1 st) (evalA exp2 st)
-evalL (LogicExp GEq exp1 exp2) st = geq (evalA exp1 st) (evalA exp2 st)
-evalL (LogicExp Eq exp1 exp2) st = eq (evalA exp1 st) (evalA exp2 st)
-evalL (LogicExp Diff exp1 exp2) st = diff (evalA exp1 st) (evalA exp2 st)
+evalL (LogicExp Lt exp1 exp2) st = comp (<) (evalA exp1 st) (evalA exp2 st)
+evalL (LogicExp Gt exp1 exp2) st = comp (>) (evalA exp1 st) (evalA exp2 st)
+evalL (LogicExp LEq exp1 exp2) st = comp (<=) (evalA exp1 st) (evalA exp2 st)
+evalL (LogicExp GEq exp1 exp2) st = comp (>=) (evalA exp1 st) (evalA exp2 st)
+evalL (LogicExp Eq exp1 exp2) st = comp (==) (evalA exp1 st) (evalA exp2 st)
+evalL (LogicExp Diff exp1 exp2) st = comp (/=) (evalA exp1 st) (evalA exp2 st)
 evalL (BoolExp And exp1 exp2) st = ((evalL exp1 st) && (evalL exp2 st))
 evalL (BoolExp Or exp1 exp2) st = ((evalL exp1 st) || (evalL exp2 st))
 
@@ -229,6 +202,7 @@ playWhile2 l b (Stmts (h:t)) st = do { s0 <- playStmt h st
 
 isString :: Value -> (Bool, String)
 isString (StringV v) = (True, v)
+isString (CharV c) = (True, c:[])
 isString _ = (False, "")
 
 write :: [Exp] -> SymTable -> IO ()
@@ -237,12 +211,6 @@ write (h:t) st = let (v, t0) = eval h st
                      (b, str) = isString v in
                      if (b) then putStr str >> write t st--Allows \n
                      else putStr ((show v) ++ " ") >> write t st
-
-readV :: [Id] -> SymTable -> (IO SymTable)
-readV [] st = return st
-readV ids st = do { ist <- readT ids [] st
-                    ; return (snd ist)
-                    }
 
 readT :: [Id] -> String -> SymTable -> (IO ([id], SymTable))
 readT [] _ st = return ([], st)
@@ -297,7 +265,9 @@ playStmt (While exp stmt) st = do { s0 <- (playWhile1 exp stmt ([], SymTable st)
                                   ; return (ancestor s0)
                                   }
 playStmt (Read []) st = error "read must receive an argument"
-playStmt (Read l) st = readV l st
+playStmt (Read ids) st = do { ist <- readT ids [] st
+                          ; return (snd ist)
+                          }
 playStmt (Write []) st = error "write must receive an argument"
 playStmt (Write exps) st = write exps st >> return st
 playStmt _ st = return st
@@ -331,6 +301,7 @@ playProgram (VarP (VarDecl type0 (h:t))) st = let (n, _, _) = findSymb (st, Null
                                                      ; if (n == " Not Found") then return ((varToSymbol type0 h (st, Null)) : s)
                                                      ; else error $ "variable " ++ n ++ " already declared"
                                                      }
+playProgram _ st = return st
 
 m :: String -> IO ()
 m f = do {playProgram (principal2 f) []; return ()}
