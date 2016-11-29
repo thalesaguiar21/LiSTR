@@ -62,7 +62,7 @@ readT ids [] st = do { ln <- getLine ; readT ids (whites ln) st}
 readT ((StructId ((Id id):ids)):t) s st0 = do { let (_, v0, t0) = findSymb st0 id
                                                     (_, t1) = getValueFromStruct ids v0 t0
                                                     n = readT2 t1 s
-                                                    st1 = atribSymb (StructId (ids)) Assign (fst n, t1) st0
+                                                    st1 = atribSymb (StructId ((Id id):ids)) Assign (fst n, t1) st0
                                               ; readT t (whites (snd n)) st1
                                               }
 readT ((Id id):t) s st0 = do { let (_, _, t0) = findSymb st0 id

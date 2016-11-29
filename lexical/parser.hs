@@ -276,7 +276,7 @@ fundeclparser = do { m_reserved "fun"
 structparser :: Parser P
 structparser = do { m_reserved "struct"
                   ; name <- m_identifier
-                  ; f <- m_braces (m_commaSep1 fields) 
+                  ; f <- m_braces (fields `endBy1` m_semi) 
                   ; m_semi
                   ; return (StructDecl (Struct (Id name) f))
                   }

@@ -48,7 +48,7 @@ atribStruct :: [Id] -> (Value, Type) -> (Value, Type) -> Value
 atribStruct [] (value0, type0) (value1, type1) = if (superType type0 type1) then convertToType value1 type1 type0
                                                  else error ((show type0) ++ " not compatible with " ++ (show type1) ++ " use cast")
 atribStruct ((Id id):t) (StructV type0 (values), Struct _ l) v = let (vl, vm, vr) = splitStruct id l values in
-                                                                     atribStruct t vm v
+                                                                     StructV type0 (vl ++ ((atribStruct t vm v) : vr))
 
 convertToType :: Value -> Type -> Type -> Value
 convertToType (CharV c) Char String = StringV (c : [])
