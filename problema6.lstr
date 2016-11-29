@@ -1,0 +1,28 @@
+struct Aluno {
+	string name;
+	int mat;
+};
+
+fun Aluno create (string name, int mat) {
+	Aluno myAluno;
+	myAluno.name = "Thales";
+	myAluno.mat = 2014038999;
+	return myAluno;
+}
+
+fun bool isEqual (Aluno a1, Aluno a2) {
+	if((a1.name == a2.name) && (a1.mat == a2.mat)){
+		return true;
+	} else {
+		return false;
+	}
+}
+
+
+
+
+proc main(){
+	int x;
+
+	write "Hey\n";
+}
