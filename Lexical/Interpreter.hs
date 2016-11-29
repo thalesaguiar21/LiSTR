@@ -1,3 +1,5 @@
+module Lexical.Interpreter where
+
 import Lexical.Types
 import Lexical.Parser
 import DataTypes.Racional

@@ -1,7 +1,8 @@
-module Lexical.FunTable2 where
+module Lexical.FunTable where
 
 import Lexical.Parser
 import Lexical.VarTable
+import Lexical.Interpreter (typeToValue)
 
 import Data.Typeable
 
@@ -30,6 +31,12 @@ instance Eq (Fun) where
 addFun :: FunTable -> Fun -> FunTable
 addFun ft f = if (elem f ft) then ft else (ft ++ [f])
 
+regParams :: SymTable -> [(Name, Type)] -> SymTable
+regParams sTab []                          = sTab
+regParams (sTab, sTabNull) ((nm, tp):funs) = if fun `elem` sTab 
+                                                then error "SymTable :: variable already decalred!"
+                                                else (fun:fst(regParams (sTab, sTabNull) funs), sTabNull)
+                                             where fun = (nm, (typeToValue tp), tp)
 
 rmFun :: FunTable -> Fun -> FunTable
 rmFun [] f = []
@@ -43,13 +50,13 @@ findFun ((FunC name t p s):c) n =   if name==n then (FunC name t p s)
 findFun ((Proc' name p s):c) n =    if name==n then (Proc' name p s)
                                     else (findFun c n)
 
-
-f1 = FunC "func1" Float [("p2", Float), ("p2", Char)] [] --[ VarS (VarDecl (VarDecl Float [(IdOrAtribI (Id "yay"))])) ]
+mySTB = ([], Null)
+f1 = FunC "func1" Float [("p1", Float), ("p2", Char)] [] --[ VarS (VarDecl (VarDecl Float [(IdOrAtribI (Id "yay"))])) ]
 f2 = FunC "func2" Float [("p1", Float), ("p2", Char)] []
 f3 = FunC "func3" Float [("p1", Float)] []
 f4 = FunC "func4" Float [] []
 f5 = Proc' "proced1" [("p", Int), ("p2", Int)] []
 f6 = FunC "func5" Float [("p1", Float), ("p", Int)] []
 f7 = Proc' "proced2" [("p1", Int), ("p2", Char)] []
-listf = [f1, f2, f3, f4, f5, f6, f7]
+listf = []
 
