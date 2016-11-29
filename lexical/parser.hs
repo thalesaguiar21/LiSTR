@@ -49,6 +49,7 @@ instance Show Value where
    show (BoolV v) = if v then "true" else "false"
    show (CharV v) = show v
    show (StringV v) = show v
+   show (StructV _ t) = concat (map show t)
 
 instance Eq Value where
     (BoolV x) == (BoolV y)         = x == y
@@ -59,9 +60,9 @@ instance Eq Value where
     (StringV x) == (StringV y)     = x == y
 
 instance Ord Value where
-    IntV x <= IntV y     = x <= y
+    IntV x <= IntV y           = x <= y
     RacionalV x <= RacionalV y = x <= y
-    FloatV x <= FloatV y = x <= y
+    FloatV x <= FloatV y       = x <= y
 
 stringToType :: String -> Type
 stringToType "bool" = Bool

@@ -11,9 +11,14 @@ import Data.Char
 import Text.Parsec
 import Text.Parsec.String
 
-atribSymb :: String -> Assign-> (Value, Type) -> SymTable -> SymTable
+atribSymb :: Id -> Assign-> (Value, Type) -> SymTable -> SymTable
 atribSymb id _ _ ([], Null) = error ( "variable " ++ id ++ " not declared")
 atribSymb id a v ([], SymTable anc) = ([], SymTable (atribSymb id a v anc))
+atribSymb (StructId ((Id id0):ids)) Assign (value0, type0) (h:t, anc) = let (id1, _, _) = h in
+                                                                            if (id0 == id1) then
+                                                                               (atribStruct ids (value0, type0) : t, anc0)
+                                                                            else let (st, anc1) = atribSymb id0 Assign (value0, type0) (t, anc0) in
+                                                                                 (h : st, anc1)
 atribSymb id0 Assign (value0, type0) (h:t, anc0) = let (id1, _, _) = h in
                                                        if (id0 == id1) then
                                                           (atrib h (value0, type0) : t, anc0)
@@ -34,21 +39,27 @@ atrib :: Symbol -> (Value, Type) -> Symbol
 atrib (id, value0, type0) (value1, type1) = if (superType type0 type1) then (id, convertToType value1 type1 type0, type0)
                                             else error ((show type0) ++ " not compatible with " ++ (show type1) ++ " use cast")
 
+splitAt :: String -> [(Type, Id)] -> [Value] -> ([Value], (Value, Type), [Value])
+splitAt (id) (((Id id0), t0):t) (v0:v) = if(id == id0) then ([], (v0, t0), v)
+                                        else let (vl, vm, vr) = splitAt id t v in
+                                             ((v0:vl), vm, vr)
+
+atribStruct :: [Id] -> (Value, Type) -> (Value, Type) -> Value
+atribStruct (StructId []) (value0, type0) (value1, type1) = if (superType type0 type1) then (id, convertToType value1 type1 type0, type0)
+                                                            else error ((show type0) ++ " not compatible with " ++ (show type1) ++ " use cast")
+atribStruct (StructId ((Id id):t)) (StructV type0 (values), Struct _ l) v = let (vl, vm, vr) = splitAt id l values in
+                                                                                atribStruct (StructId t) vm v
+
 convertToType :: Value -> Type -> Type -> Value
-convertToType value Bool Bool = value
-convertToType value Char Char = value
 convertToType (CharV c) Char String = StringV (c : [])
-convertToType value Int Int = value
 convertToType (IntV n) Int Racional = RacionalV (PRacional n 1)
 convertToType (IntV n) Int Float = FloatV (fromIntegral n)
 convertToType (RacionalV (PRacional n m)) Racional Int = IntV (n `div` m)
-convertToType value Racional Racional = value
 convertToType (RacionalV r) Racional Float = FloatV ((fromIntegral (numerator r)) / (fromIntegral (denominator r)))
 convertToType (FloatV f) Float Int = IntV (truncate f)
 convertToType (FloatV f) Float Racional = error $ "Ainda nao foi implementado"--let r = toRational f in RacionalV (PRacional (numerator r) (denominator r))
-convertToType value Float Float = value
-convertToType value String String = value
-convertToType _ type0 type1 = error $ "Can't convert " ++ (show type0) ++ " to " ++ (show type1)
+convertToType v type0 type1 = if (type0 == type1) then v 
+                              else error $ "Can't convert " ++ (show type0) ++ " to " ++ (show type1)
 
 superType :: Type -> Type -> Bool
 superType Bool Bool = True
@@ -108,6 +119,11 @@ valueToBool _ = error $ "expected bool type"
 findInStruct :: Id -> [Value] -> [(Type, Id)] -> (Value, Type)
 findInStruct id (v0:v1) ((type0, id0):l) = if (id == id0) then (v0, type0)
                                            else findInStruct id v1 l
+{-
+setValueOfStruct :: [Id] -> Value -> Type -> (Value, Type)
+setValueOfStruct [] v t = (v, t)
+setValueOfStruct (h:t) (StructV _ v) (Struct _ l) = let (v0, t0) = findInStruct h v l in
+                                                          getValueFromStruct t v0 t0-}
 
 getValueFromStruct :: [Id] -> Value -> Type -> (Value, Type)
 getValueFromStruct [] v t = (v, t)
@@ -118,9 +134,9 @@ evalA :: ArithmeticExp -> SymTable -> (Value, Type)
 evalA (ExpId (Id id)) st = let (name, value, type0) = findSymb st id in
                           if (name == " Not Found") then error $ "variable " ++ id ++ " not declared"
                           else (value, type0)
-{-evalA (ExpId (StructId (id:ids))) st = let (name, value0, type0) = findSymb st id in
+evalA (ExpId (StructId ((Id id):ids))) st = let (name, value0, type0) = findSymb st id in
                                  if (name == " Not Found") then error $ "variable " ++ id ++ " not declared"
-                                 else getValueFromStruct ids value0 type0-}
+                                 else getValueFromStruct ids value0 type0
 evalA (Const (CharV c)) _ = (CharV c, Char)
 evalA (Const (IntV n)) _ = (IntV n, Int)
 evalA (Const (RacionalV r)) _ = (RacionalV r, Racional)
