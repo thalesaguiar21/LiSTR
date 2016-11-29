@@ -12,43 +12,43 @@ import Text.Parsec
 import Text.Parsec.String
 
 atribSymb :: Id -> Assign-> (Value, Type) -> SymTable -> SymTable
-atribSymb id _ _ ([], Null) = error ( "variable " ++ id ++ " not declared")
+atribSymb id _ _ ([], Null) = error ( "variable " ++ (show id) ++ " not declared")
 atribSymb id a v ([], SymTable anc) = ([], SymTable (atribSymb id a v anc))
-atribSymb (StructId ((Id id0):ids)) Assign (value0, type0) (h:t, anc) = let (id1, _, _) = h in
+atribSymb (StructId ((Id id0):ids)) Assign (value0, type0) (h:t, anc) = let (id1, value1, type1) = h in
                                                                             if (id0 == id1) then
-                                                                               (atribStruct ids (value0, type0) : t, anc0)
-                                                                            else let (st, anc1) = atribSymb id0 Assign (value0, type0) (t, anc0) in
+                                                                               (((id0, (atribStruct ids (value1, type1) (value0, type0)), type1) : t), anc)
+                                                                            else let (st, anc1) = atribSymb (StructId ((Id id0):ids)) Assign (value0, type0) (t, anc) in
                                                                                  (h : st, anc1)
-atribSymb id0 Assign (value0, type0) (h:t, anc0) = let (id1, _, _) = h in
+atribSymb (Id id0) Assign (value0, type0) (h:t, anc0) = let (id1, _, _) = h in
                                                        if (id0 == id1) then
                                                           (atrib h (value0, type0) : t, anc0)
-                                                       else let (st, anc1) = atribSymb id0 Assign (value0, type0) (t, anc0) in
+                                                       else let (st, anc1) = atribSymb (Id id0) Assign (value0, type0) (t, anc0) in
                                                             (h : st, anc1)
-atribSymb id0 AssignPlus (value0, type0) ((h:t), anc0) = let (id1, value1, type1) = h in
+atribSymb (Id id0) AssignPlus (value0, type0) ((h:t), anc0) = let (id1, value1, type1) = h in
                                                              if (id0 == id1) then
                                                                 (atrib h (add (value1, type1) (value0, type0)) : t, anc0)
-                                                             else let (st, anc1) = atribSymb id0 AssignPlus (value0, type0) (t, anc0) in
+                                                             else let (st, anc1) = atribSymb (Id id0) AssignPlus (value0, type0) (t, anc0) in
                                                                   (h : st, anc1)
-atribSymb id0 AssignMinus (value0, type0) ((h:t), anc0) = let (id1, value1, type1) = h in
+atribSymb (Id id0) AssignMinus (value0, type0) ((h:t), anc0) = let (id1, value1, type1) = h in
                                                               if (id0 == id1) then
                                                                  (atrib h (sub (value1, type1) (value0, type0)) : t, anc0)
-                                                              else let (st, anc1) = atribSymb id0 AssignPlus (value0, type0) (t, anc0) in
+                                                              else let (st, anc1) = atribSymb (Id id0) AssignPlus (value0, type0) (t, anc0) in
                                                                    (h : st, anc1)
 
 atrib :: Symbol -> (Value, Type) -> Symbol
 atrib (id, value0, type0) (value1, type1) = if (superType type0 type1) then (id, convertToType value1 type1 type0, type0)
                                             else error ((show type0) ++ " not compatible with " ++ (show type1) ++ " use cast")
 
-splitAt :: String -> [(Type, Id)] -> [Value] -> ([Value], (Value, Type), [Value])
-splitAt (id) (((Id id0), t0):t) (v0:v) = if(id == id0) then ([], (v0, t0), v)
-                                        else let (vl, vm, vr) = splitAt id t v in
+splitStruct :: String -> [(Type, Id)] -> [Value] -> ([Value], (Value, Type), [Value])
+splitStruct (id) ((t0, (Id id0)):t) (v0:v) = if(id == id0) then ([], (v0, t0), v)
+                                        else let (vl, vm, vr) = splitStruct id t v in
                                              ((v0:vl), vm, vr)
 
 atribStruct :: [Id] -> (Value, Type) -> (Value, Type) -> Value
-atribStruct (StructId []) (value0, type0) (value1, type1) = if (superType type0 type1) then (id, convertToType value1 type1 type0, type0)
-                                                            else error ((show type0) ++ " not compatible with " ++ (show type1) ++ " use cast")
-atribStruct (StructId ((Id id):t)) (StructV type0 (values), Struct _ l) v = let (vl, vm, vr) = splitAt id l values in
-                                                                                atribStruct (StructId t) vm v
+atribStruct [] (value0, type0) (value1, type1) = if (superType type0 type1) then convertToType value1 type1 type0
+                                                 else error ((show type0) ++ " not compatible with " ++ (show type1) ++ " use cast")
+atribStruct ((Id id):t) (StructV type0 (values), Struct _ l) v = let (vl, vm, vr) = splitStruct id l values in
+                                                                     atribStruct t vm v
 
 convertToType :: Value -> Type -> Type -> Value
 convertToType (CharV c) Char String = StringV (c : [])
@@ -119,11 +119,6 @@ valueToBool _ = error $ "expected bool type"
 findInStruct :: Id -> [Value] -> [(Type, Id)] -> (Value, Type)
 findInStruct id (v0:v1) ((type0, id0):l) = if (id == id0) then (v0, type0)
                                            else findInStruct id v1 l
-{-
-setValueOfStruct :: [Id] -> Value -> Type -> (Value, Type)
-setValueOfStruct [] v t = (v, t)
-setValueOfStruct (h:t) (StructV _ v) (Struct _ l) = let (v0, t0) = findInStruct h v l in
-                                                          getValueFromStruct t v0 t0-}
 
 getValueFromStruct :: [Id] -> Value -> Type -> (Value, Type)
 getValueFromStruct [] v t = (v, t)

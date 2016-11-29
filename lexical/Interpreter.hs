@@ -59,9 +59,15 @@ write (h:t) st = let (v, t0) = eval h st
 readT :: [Id] -> String -> SymTable -> (IO ([id], SymTable))
 readT [] _ st = return ([], st)
 readT ids [] st = do { ln <- getLine ; readT ids (whites ln) st}
+readT ((StructId ((Id id):ids)):t) s st0 = do { let (_, v0, t0) = findSymb st0 id
+                                                    (_, t1) = getValueFromStruct ids v0 t0
+                                                    n = readT2 t1 s
+                                                    st1 = atribSymb (StructId (ids)) Assign (fst n, t1) st0
+                                              ; readT t (whites (snd n)) st1
+                                              }
 readT ((Id id):t) s st0 = do { let (_, _, t0) = findSymb st0 id
                                    n = readT2 t0 s
-                                   st1 = atribSymb id Assign (fst n, t0) st0
+                                   st1 = atribSymb (Id id) Assign (fst n, t0) st0
                              ; readT t (whites (snd n)) st1
                              }
 
@@ -96,7 +102,7 @@ playStmt (VarS (VarDecl type0 (h:t))) (st, anc) tt = let (n, _, _) = (findSymb (
                                                          then playStmt (VarS (VarDecl type0 t))
                                                                       (((varToSymbol type0 h (st, anc)) : st), anc) tt
                                                          else error $ "variable " ++ n ++" already declared"
-playStmt (AtribS (Atrib (Id id) assign exp)) st tt = return ((atribSymb id assign (eval exp st) st), tt)
+playStmt (AtribS (Atrib id assign exp)) st tt = return ((atribSymb id assign (eval exp st) st), tt)
 playStmt (IfS (If exp stmt)) st tt = if (evalL exp st)
                                      then do { (s, t) <- playStmt stmt ([], SymTable st) tt
                                              ; return ((ancestor s), t)

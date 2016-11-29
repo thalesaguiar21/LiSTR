@@ -49,7 +49,7 @@ instance Show Value where
    show (BoolV v) = if v then "true" else "false"
    show (CharV v) = show v
    show (StringV v) = show v
-   show (StructV _ t) = concat (map show t)
+   show (StructV _ t) = "( " ++ concat (map ((++ ", ") . show) t) ++ " )"
 
 instance Eq Value where
     (BoolV x) == (BoolV y)         = x == y
@@ -120,7 +120,7 @@ table = [ [Prefix (m_reservedOp "-" >> return (Neg))]--Alterar ordem para mudar 
 term = m_parens arithmeticexpparser
        <|> try(arithmeticexpparser_aux)
        <|> do { f <- funcallparser; return (FunE f)}
-       <|> fmap ExpId idparser
+       <|> do {id <- idparser; return (ExpId id)}
 
 arithmeticexpparser_aux = try(do { float <- m_float;
                     ; return (Const (FloatV float))
@@ -233,7 +233,7 @@ stmt1 = do { m_reserved "return"; e <- expparser; m_semi; return (Return e)}
       <|> do { m_reserved "break"; m_semi; return Break}
       <|> do { m_reserved "continue"; m_semi; return Continue}
       <|> do { m_reserved "read"
-             ; ids <- many (do{ id <- m_identifier; return (Id id) })
+             ; ids <- many (do{ id <- idparser; return id })
              ; m_semi
              ; return (Read ids)
              }
