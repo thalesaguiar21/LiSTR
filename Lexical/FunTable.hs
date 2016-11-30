@@ -2,28 +2,28 @@ module Lexical.FunTable where
 
 import Lexical.Parser
 import Lexical.VarTable
-import Lexical.Interpreter (typeToValue)
+import Lexical.Types (typeToValue)
 
 import Data.Typeable
 
 type FunTable = [Fun]
 
-data Fun = FunC Name Type [(Name, Type)] [Stmt] | Proc' Name [(Name, Type)] [Stmt]
+data Fun = FunC Id Type [(Id, Type, Bool)] [Stmt] | Proc' Id [(Id, Type, Bool)] [Stmt]
 
 instance Show (Fun) where
-    show (FunC n1 t1 p1 _ ) = show t1 ++ " " ++ n1 ++ "(" ++ (printParam p1) ++ "); "
-    show (Proc' n1 p1 _ ) = n1 ++ "(" ++ (printParam p1) ++ ");"
+    show (FunC n1 t1 p1 _ ) = show t1 ++ " " ++ show n1 ++ "(" ++ (printParam p1) ++ "); "
+    show (Proc' n1 p1 _ ) = show n1 ++ "(" ++ (printParam p1) ++ ");"
 
-printParam :: [(Name, Type)] -> String
+printParam :: [(Id, Type, Bool)] -> String
 printParam [] = ""
-printParam (h:t) =  let pn = fst h
-                        pt = snd h
+printParam (h:t) =  let (pn, pt, pp) = h
                         virg = if (length t)>0 then ", " else ""
-                    in show pt ++ " " ++ pn ++ virg ++ (printParam t)
+                        passType = if pp then "" else "inout"
+                    in show pt ++ " " ++ show pn ++ " " ++ passType ++ virg ++ (printParam t)
 
 instance Eq (Fun) where
-    (FunC _ _ _ _ ) == (Proc' _ _ _ ) = False
-    (Proc' _ _ _ ) == (FunC _ _ _ _ ) = False
+    (FunC fn _ _ _ ) == (Proc' pn _ _ ) = fn == pn
+    (Proc' pn _ _ ) == (FunC fn _ _ _ ) = pn == fn
     (FunC n1 t1 p1 _ ) == (FunC n2 t2 p2 _ ) = if (n1==n2) then True else False
     (Proc' n1 p1 _ ) == (Proc' n2 p2 _ ) = if (n1==n2) then True else False
 
@@ -31,26 +31,33 @@ instance Eq (Fun) where
 addFun :: FunTable -> Fun -> FunTable
 addFun ft f = if (elem f ft) then ft else (ft ++ [f])
 
-regParams :: SymTable -> [(Name, Type)] -> SymTable
+regParams :: SymTable -> [(Id, Type, Bool)] -> SymTable
 regParams sTab []                          = sTab
-regParams (sTab, sTabNull) ((nm, tp):funs) = if fun `elem` sTab 
-                                                then error "SymTable :: variable already decalred!"
-                                                else (fun:fst(regParams (sTab, sTabNull) funs), sTabNull)
-                                             where fun = (nm, (typeToValue tp), tp)
+regParams (sTab, sTabNull) ((nm, tp, pp):funs) = if fun `elem` sTab 
+                                                    then error "SymTable :: variable already decalred!"
+                                                    else (fun:fst(regParams (sTab, sTabNull) funs), sTabNull)
+                                                 where fun = ((show nm), (typeToValue tp), tp)
 
 rmFun :: FunTable -> Fun -> FunTable
 rmFun [] f = []
 rmFun (h:t) f = if h==f then t else [h]++(rmFun t f)
 
 
-findFun :: FunTable -> Name -> Fun
-findFun [] n = error ("findFun:: Function " ++ n ++ " not declared.")
+findFun :: FunTable -> Id -> Fun
+findFun [] n = (FunC (Id " Not found") Int [] [])
 findFun ((FunC name t p s):c) n =   if name==n then (FunC name t p s)
                                     else (findFun c n)
 findFun ((Proc' name p s):c) n =    if name==n then (Proc' name p s)
                                     else (findFun c n)
 
-mySTB = ([], Null)
+
+
+-- Predefined functions
+
+
+
+
+{-mySTB = ([], Null)
 f1 = FunC "func1" Float [("p1", Float), ("p2", Char)] [] --[ VarS (VarDecl (VarDecl Float [(IdOrAtribI (Id "yay"))])) ]
 f2 = FunC "func2" Float [("p1", Float), ("p2", Char)] []
 f3 = FunC "func3" Float [("p1", Float)] []
@@ -58,5 +65,5 @@ f4 = FunC "func4" Float [] []
 f5 = Proc' "proced1" [("p", Int), ("p2", Int)] []
 f6 = FunC "func5" Float [("p1", Float), ("p", Int)] []
 f7 = Proc' "proced2" [("p1", Int), ("p2", Char)] []
-listf = []
+listf = []-}
 

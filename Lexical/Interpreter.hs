@@ -5,6 +5,7 @@ import Lexical.Parser
 import DataTypes.Racional
 import Lexical.TypeTable
 import Lexical.VarTable
+import Lexical.FunTable
 
 import System.IO
 import System.IO.Unsafe
@@ -12,14 +13,6 @@ import System.IO.Unsafe
 import Data.Char
 import Text.Parsec
 import Text.Parsec.String
-
-typeToValue :: Type -> Value
-typeToValue Bool = BoolV False
-typeToValue Char = CharV ' '
-typeToValue Int = IntV 1
-typeToValue Racional = RacionalV (PRacional 0 0)
-typeToValue Float = FloatV 0.0
-typeToValue String = StringV ""
 
 listTypeToValue :: [(Type, Id)] -> [Value]
 listTypeToValue l = map (typeToValue . fst) l
@@ -88,6 +81,7 @@ readT2 Racional s = let ((v, r):_) = reads s ::[(Racional, String)] in (Racional
 readT2 Float s = let ((v, r):_) = reads s ::[(Double, String)] in (FloatV v, r)
 readT2 String s = let ((v, r)) = break isSpace s in (StringV v, r)
 
+-- Mudar
 playStmt :: Stmt -> SymTable -> TypeTable -> (IO (SymTable, TypeTable))
 playStmt (Stmts []) st tt = return (st, tt)
 playStmt (Stmts (h:t)) st tt = do { (s0, tt0) <- playStmt h st tt
@@ -136,31 +130,35 @@ getName :: IdOrAtrib -> Name
 getName (IdOrAtribI (Id id)) = id
 getName (IdOrAtribA (Atrib (Id id) _ _)) = id
 
-playProgram :: P -> [Symbol] -> TypeTable -> (IO ([Symbol], TypeTable))
-playProgram (P []) st tt = return (st, tt)
-playProgram (P (h:t)) st0 tt0 = do {(st1, tt1) <- (playProgram h st0 tt0); playProgram (P t) st1 tt1}
-playProgram (FunP (Proc (Id id) (ParamDecl []) stmt)) st0 tt0 = if (id == "main") then 
-                                                                   do { (st1, tt1) <- playStmt stmt ([], SymTable (st0, Null)) tt0
-                                                                      ; return ( fst( ancestor(st1) ), tt1 )
-                                                                      }
-                                                                else return (st0, tt0)--Criar procedimento
-playProgram (FunP (Proc (Id id) (ParamDecl _) stmt)) st tt = if (id == "main") then
+-- Ajeitando
+{-type FunTable = [Fun]
+
+data Fun = FunC Name Type [(Name, Type)] [Stmt] | Proc' Name [(Name, Type)] [Stmt]-}
+playProgram :: P -> [Symbol] -> TypeTable -> FunTable -> (IO ([Symbol], TypeTable, FunTable))
+playProgram (P []) st tt ft = return (st, tt, ft)
+playProgram (P (h:t)) st0 tt0 ft0 = do {(st1, tt1, ft1) <- (playProgram h st0 tt0 ft0); playProgram (P t) st1 tt1 ft1}
+playProgram (FunP (Proc (Id id) (ParamDecl []) stmt)) st0 tt0 ft0 = if (id == "main") then 
+                                                                    do { (st1, tt1, ft1) <- playStmt stmt ([], SymTable (st0, Null)) tt0 ft0
+                                                                       ; return ( fst( ancestor(st1) ), tt1, ft1 )
+                                                                       }
+                                                                    else return (st0, tt0, (addFun ft0  (Proc' id [] stmt)))--Criar procedimento
+playProgram (FunP (Proc (Id id) (ParamDecl _) stmt)) st tt ft = if (id == "main") then
                                                                 error ("main must not receive an argument")
-                                                             else return (st, tt)--criar procedimento 
-playProgram (FunP (Fun _ (Id id) _ _)) st tt = if (id == "main") then error $ "main must be a procedure" else return (st, tt)--criar funcao
-playProgram (VarP (VarDecl type0 [])) st tt = return (st, tt)
-playProgram (VarP (VarDecl (StructAux name) l)) st tt = let (Struct (Id n) s) = (findType name tt) in
-                                                            if (n == " Not Found")
-                                                            then error $ "type \"" ++ name ++"\" not declared"
-                                                            else playProgram (VarP (VarDecl (Struct (Id n) s) l)) st tt
-playProgram (VarP (VarDecl type0 (h:t))) st tt = let (n, _, _) = findSymb (st, Null) (getName h) in
-                                                     if (n == " Not Found")
-                                                     then playProgram (VarP (VarDecl type0 t)) ((varToSymbol type0 h (st, Null)) : st) tt
-                                                     else error $ "variable " ++ n ++ " already declared"
-playProgram ( StructDecl (Struct (Id name) l)) st tt = let (Struct (Id n) _) = (findType name tt) in
-                                                           if (n == " Not Found") then return (st, ((Struct (Id name) l):tt))
-                                                           else error $ "type \"" ++ name ++"\" already declared"
-playProgram _ st tt = return (st, tt)
+                                                                else return (st, tt, (addFun ft (FunP (Proc (Id id) (ParamDecl _) stmt))))--criar procedimento 
+playProgram (FunP (Fun _ (Id id) _ _)) st tt ft = if (id == "main") then error $ "main must be a procedure" else return (st, tt, ft)--criar funcao
+playProgram (VarP (VarDecl type0 [])) st tt ft = return (st, tt, ft)
+playProgram (VarP (VarDecl (StructAux name) l)) st tt ft = let (Struct (Id n) s) = (findType name tt) in
+                                                               if (n == " Not Found")
+                                                               then error $ "type \"" ++ name ++"\" not declared"
+                                                               else playProgram (VarP (VarDecl (Struct (Id n) s) l)) st tt ft
+playProgram (VarP (VarDecl type0 (h:t))) st tt ft = let (n, _, _) = findSymb (st, Null) (getName h) in
+                                                        if (n == " Not Found")
+                                                        then playProgram (VarP (VarDecl type0 t)) ((varToSymbol type0 h (st, Null)) : st) tt ft
+                                                        else error $ "variable " ++ n ++ " already declared"
+playProgram ( StructDecl (Struct (Id name) l)) st tt ft = let (Struct (Id n) _) = (findType name tt) in
+                                                              if (n == " Not Found") then return (st, ((Struct (Id name) l):tt), ft)
+                                                              else error $ "type \"" ++ name ++"\" already declared"
+playProgram _ st tt ft = return (st, tt, ft)
 
 m :: String -> IO ()
 m f = do {playProgram (principal2 f) [] []; return ()}

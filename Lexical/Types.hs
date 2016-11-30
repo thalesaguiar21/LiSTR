@@ -11,6 +11,15 @@ import Data.Char
 import Text.Parsec
 import Text.Parsec.String
 
+
+typeToValue :: Type -> Value
+typeToValue Bool = BoolV False
+typeToValue Char = CharV ' '
+typeToValue Int = IntV 1
+typeToValue Racional = RacionalV (PRacional 0 0)
+typeToValue Float = FloatV 0.0
+typeToValue String = StringV ""
+
 atribSymb :: Id -> Assign-> (Value, Type) -> SymTable -> SymTable
 atribSymb id _ _ ([], Null) = error ( "variable " ++ (show id) ++ " not declared")
 atribSymb id a v ([], SymTable anc) = ([], SymTable (atribSymb id a v anc))

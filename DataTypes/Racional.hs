@@ -4,6 +4,7 @@ module DataTypes.Racional
     , numerator
     , denominator
     , toFloat
+    , divR
     ) where
 
 import Data.Char
@@ -75,20 +76,10 @@ instance Num Racional where
 
     fromInteger i = PRacional (fromInteger i) 1
 
-instance Fractional Racional where
-    r1 / r2 = let r = nu r1 * de r2
-                  l = de r1 * nu r2
-            in PRacional r l
-
-    fromRational r = findEquivRational r 0 1
-
-    recip (PRacional n d) = if n==0 then error "Não existe divisão por zero"
-                            else (PRacional d n)
-
-findEquivRational :: Rational -> Integer -> Integer -> Racional
-findEquivRational f n d = if ((fromInteger n)/fromInteger(d)-f)==f then (PRacional (fromInteger n) (fromInteger d))
-                          else if (fromInteger n)/fromInteger(d)>f then (findEquivRational f n (d+1))
-                          else (findEquivRational f (n+1) d)
+divR :: Racional -> Racional -> Racional
+divR r1 r2 = let r = nu r1 * de r2
+                 l = de r1 * nu r2
+             in PRacional r l
 
 numerator :: Racional -> Int
 numerator r1 = nu r1
