@@ -17,14 +17,14 @@ import Text.Parsec.String
 listTypeToValue :: [(Type, Id)] -> [Value]
 listTypeToValue l = map (typeToValue . fst) l
 
-varToSymbol :: Type -> IdOrAtrib -> SymTable -> Symbol
-varToSymbol (Struct name l) (IdOrAtribI (Id id)) _ = (id, StructV (Struct name l) (listTypeToValue l), Struct name l)
-varToSymbol t (IdOrAtribI (Id id)) _ = (id, (typeToValue t), t)
-varToSymbol type0 (IdOrAtribA (Atrib (Id id) Assign exp)) st = let (v, type1) = eval exp st in
-                                                                   atrib (id, (IntV 0), type0) (v, type1)
+varToSymbol :: Type -> IdOrAtrib -> SymTable -> FunTable -> Symbol
+varToSymbol (Struct name l) (IdOrAtribI (Id id)) _ _ = (id, StructV (Struct name l) (listTypeToValue l), Struct name l)
+varToSymbol t (IdOrAtribI (Id id)) _ _ = (id, (typeToValue t), t)
+varToSymbol type0 (IdOrAtribA (Atrib (Id id) Assign exp)) st ft = let (v, type1) = eval exp st ft 
+                                                                  in atrib (id, (IntV 0), type0) (v, type1)
 
-playWhile1 :: LogicExp -> Stmt -> SymTable -> TypeTable -> FunTable-> (IO (SymTable, TypeTable, FunTable))
-playWhile1 l s st tt ft = if (evalL l st)
+playWhile1 :: LogicExp -> Stmt -> SymTable -> TypeTable -> FunTable -> (IO (SymTable, TypeTable, FunTable))
+playWhile1 l s st tt ft = if (evalL l st ft)
                           then playWhile2 l (Stmts []) s st tt ft
                           else return (st, tt, ft)
 
@@ -44,12 +44,12 @@ isString (StringV v) = (True, v)
 isString (CharV c) = (True, c:[])
 isString _ = (False, "")
 
-write :: [Exp] -> SymTable -> IO ()
-write [] _ = return ()
-write (h:t) st = let (v, t0) = eval h st 
-                     (b, str) = isString v in
-                     if (b) then putStr str >> write t st--Allows \n
-                     else putStr ((show v) ++ " ") >> write t st
+write :: [Exp] -> SymTable -> FunTable -> IO ()
+write [] _ _ = return ()
+write (h:t) st ft = let (v, t0) = eval h st ft 
+                        (b, str) = isString v 
+                    in if (b) then putStr str >> write t st ft--Allows \n
+                       else putStr ((show v) ++ " ") >> write t st ft
 
 readT :: [Id] -> String -> SymTable -> (IO ([id], SymTable))
 readT [] _ st = return ([], st)
@@ -81,7 +81,6 @@ readT2 Racional s = let ((v, r):_) = reads s ::[(Racional, String)] in (Racional
 readT2 Float s = let ((v, r):_) = reads s ::[(Double, String)] in (FloatV v, r)
 readT2 String s = let ((v, r)) = break isSpace s in (StringV v, r)
 
--- Mudar
 playStmt :: Stmt -> SymTable -> TypeTable -> FunTable -> (IO (SymTable, TypeTable, FunTable))
 playStmt (Stmts []) st tt ft    = return (st, tt, ft)
 playStmt (Stmts (h:t)) st tt ft = do { (s0, tt0, ft0) <- playStmt h st tt ft
@@ -96,15 +95,15 @@ playStmt (VarS (VarDecl type0 [])) st tt ft = return (st, tt, ft)
 playStmt (VarS (VarDecl type0 (h:t))) (st, anc) tt ft = let (n, _, _) = (findSymb (st, Null) (getName h)) in
                                                            if (n == " Not Found")
                                                            then playStmt (VarS (VarDecl type0 t))
-                                                                         (((varToSymbol type0 h (st, anc)) : st), anc) tt ft
+                                                                         (((varToSymbol type0 h (st, anc) ft) : st), anc) tt ft
                                                            else error $ "variable " ++ n ++" already declared"
-playStmt (AtribS (Atrib id assign exp)) st tt ft = return ((atribSymb id assign (eval exp st) st), tt, ft)
-playStmt (IfS (If exp stmt)) st tt ft = if (evalL exp st)
+playStmt (AtribS (Atrib id assign exp)) st tt ft = return ((atribSymb id assign (eval exp st ft) st), tt, ft)
+playStmt (IfS (If exp stmt)) st tt ft = if (evalL exp st ft)
                                         then do { (s, t, f) <- playStmt stmt ([], SymTable st) tt ft
                                                 ; return ((ancestor s), t, f)
                                                 }
                                         else return (st, tt, ft)
-playStmt (IfS (IfElse exp stmt0 stmt1)) st tt ft = if (evalL exp st)
+playStmt (IfS (IfElse exp stmt0 stmt1)) st tt ft = if (evalL exp st ft)
                                                    then do { (s, t, f) <- playStmt stmt0 ([], SymTable st) tt ft
                                                            ; return ((ancestor s), t, f)
                                                            }
@@ -119,7 +118,7 @@ playStmt (Read ids) st tt ft = do { ist <- readT ids [] st
                                   ; return ((snd ist), tt, ft)
                                   }
 playStmt (Write []) st tt ft   = error "write must receive an argument"
-playStmt (Write exps) st tt ft = write exps st >> return (st, tt, ft)
+playStmt (Write exps) st tt ft = write exps st ft >> return (st, tt, ft)
 playStmt _ st tt ft = return (st, tt, ft)
 
 ancestor :: SymTable -> SymTable
@@ -155,12 +154,61 @@ playProgram (VarP (VarDecl (StructAux name) l)) st tt ft = let (Struct (Id n) s)
                                                                else playProgram (VarP (VarDecl (Struct (Id n) s) l)) st tt ft
 playProgram (VarP (VarDecl type0 (h:t))) st tt ft = let (n, _, _) = findSymb (st, Null) (getName h) in
                                                         if (n == " Not Found")
-                                                        then playProgram (VarP (VarDecl type0 t)) ((varToSymbol type0 h (st, Null)) : st) tt ft
+                                                        then playProgram (VarP (VarDecl type0 t)) ((varToSymbol type0 h (st, Null) ft) : st) tt ft
                                                         else error $ "variable " ++ n ++ " already declared"
 playProgram ( StructDecl (Struct (Id name) l)) st tt ft = let (Struct (Id n) _) = (findType name tt) in
                                                               if (n == " Not Found") then return (st, ((Struct (Id name) l):tt), ft)
                                                               else error $ "type \"" ++ name ++"\" already declared"
 playProgram _ st tt ft = return (st, tt, ft)
+
+
+evalA :: ArithmeticExp -> SymTable -> FunTable -> (Value, Type)
+evalA (ExpId (Id id)) st ft = let (name, value, type0) = findSymb st id in
+                                 if (name == " Not Found") then error $ "variable " ++ id ++ " not declared"
+                                 else (value, type0)
+evalA (ExpId (StructId ((Id id):ids))) st ft = let (name, value0, type0) = findSymb st id in
+                                                 if (name == " Not Found") then error $ "variable " ++ id ++ " not declared"
+                                                 else getValueFromStruct ids value0 type0
+evalA (Const (CharV c)) _ _ = (CharV c, Char)
+evalA (Const (IntV n)) _ _ = (IntV n, Int)
+evalA (Const (RacionalV r)) _ _ = (RacionalV r, Racional)
+evalA (Const (FloatV f)) _ _ = (FloatV f, Float)
+evalA (Const (StringV s)) _ _ = (StringV s, String)
+evalA (Exp Add exp1 exp2) st ft = add (evalA exp1 st ft ) (evalA exp2 st ft )
+evalA (Exp Sub exp1 exp2) st ft = sub (evalA exp1 st ft ) (evalA exp2 st ft )
+evalA (Exp Prod exp1 exp2) st ft = prod (evalA exp1 st ft ) (evalA exp2 st ft )
+evalA (Exp Div exp1 exp2) st ft = divide (evalA exp1 st ft ) (evalA exp2 st ft )
+evalA (Exp Mod exp1 exp2) st ft = modulus (evalA exp1 st ft ) (evalA exp2 st ft )
+--evalA (Exp VecProd exp1 exp2) st = vecProd (evalA exp1 st) (evalA exp2 st)
+--evalA (Exp FunCall exp1 exp2) st = funCall fun
+--operacoes posfixadas e prefixadas nao foram implementadas
+evalA (Neg exp) st ft = sub (IntV 0, Int) (evalA exp st ft )
+evalA exp _ _ = error $ "couldn't understand the expression " ++ show exp
+
+comp :: (Value -> Value -> Bool) -> (Value, Type) -> (Value, Type) -> Bool
+comp op (v0, t0) (v1, t1) = if (t0 == t1) then (op v0 v1) else error $ "the types aren't comparable"
+
+evalL :: LogicExp -> SymTable -> FunTable -> Bool
+evalL (BoolId (Id id)) st ft =  let (name, value, type0) = findSymb st id in
+                                     if (name == " Not Found") 
+                                     then error $ "variable " ++ id ++ " not declared"
+                                     else valueToBool value
+{-evalL (BoolId id) st =  let (name, value, type0) = findSymb st id in
+                          if (name == " Not Found") then error $ "variable " ++ id ++ " not declared"
+                          else valueToBool value-}
+evalL (LogicConst b) _ _ = b
+evalL (LogicExp Lt exp1 exp2) st ft = comp (<) (evalA exp1 st ft) (evalA exp2 st ft)
+evalL (LogicExp Gt exp1 exp2) st ft = comp (>) (evalA exp1 st ft) (evalA exp2 st ft)
+evalL (LogicExp LEq exp1 exp2) st ft = comp (<=) (evalA exp1 st ft) (evalA exp2 st ft)
+evalL (LogicExp GEq exp1 exp2) st ft = comp (>=) (evalA exp1 st ft) (evalA exp2 st ft)
+evalL (LogicExp Eq exp1 exp2) st ft = comp (==) (evalA exp1 st ft) (evalA exp2 st ft)
+evalL (LogicExp Diff exp1 exp2) st ft = comp (/=) (evalA exp1 st ft) (evalA exp2 st ft)
+evalL (BoolExp And exp1 exp2) st ft = ((evalL exp1 st ft) && (evalL exp2 st ft))
+evalL (BoolExp Or exp1 exp2) st ft = ((evalL exp1 st ft) || (evalL exp2 st ft))
+
+eval :: Exp -> SymTable -> FunTable -> (Value, Type)
+eval (LExp exp) st ft = (BoolV (evalL exp st ft), Bool)
+eval (AExp exp) st ft = evalA exp st ft
 
 m :: String -> IO ()
 m f = do {playProgram (principal2 f) [] [] []; return ()}
