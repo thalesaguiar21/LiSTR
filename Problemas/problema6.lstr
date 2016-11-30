@@ -1,0 +1,67 @@
+struct Point {
+	float x;
+	float y;
+};
+
+fun Point create (float nx, float ny) {
+	Point myPoint;
+	myPoint.x = nx;
+	myPoint.y = ny;
+	return myPoint;
+}
+
+fun bool isEqual (Point p, Point q) {
+	if((p.x == q.x) && (p.y == q.y)){
+		return true;
+	} else {
+		return false;
+	}
+}
+
+fun Point sumPnts (Point p, Point q) {
+	Point sumPQ;
+	sumPQ.x = p.x + q.x;
+	sumPQ.y = p.y + q.y;
+	return sumPQ;
+}
+
+fun Point symPnt (Point p) {
+	Point symP;
+	symP.x = - p.x;
+	symP.y = - p.y;
+	return symP;
+}
+
+fun Point subPnts (Point p, Point q) {
+	Point subPQ;
+	subPQ.x = p.x - q.x;
+	subPQ.y = p.y - q.y;
+	return subPQ;
+}
+
+fun Point prodBoladao (Point p, Point q) {
+	Point prodPQ;
+	prodPQ.x = p.x * q.y / q.x;
+	prodPQ.y = p.y * q.x / q.y;
+	return prodPQ;
+}
+
+fun Point invPnt (Point p) {
+	Point invP;
+	invP.x = 1 / p.x;
+	invP.y = 1 / p.y;
+	return invP;
+}
+
+fun Point divBoladao (Point p, Point q) {
+	Point divPQ;
+	divPQ.x = q.x * q.x / q.y;
+	divPQ.x = q.y * q.y / q.x;
+	return divPQ;
+}
+
+proc main(){
+	int x;
+
+	write "Hey\n";
+}

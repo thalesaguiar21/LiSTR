@@ -5,7 +5,7 @@ struct Aluno {
 
 fun Aluno create (string name, int mat) {
 	Aluno myAluno;
-	myAluno.name = "Thales";
+	myaluno.name = "Thales Aguiar";
 	myAluno.mat = 2014038999;
 	return myAluno;
 }
@@ -17,9 +17,6 @@ fun bool isEqual (Aluno a1, Aluno a2) {
 		return false;
 	}
 }
-
-
-
 
 proc main(){
 	int x;

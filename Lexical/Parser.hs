@@ -207,10 +207,10 @@ vardeclparser = do { t <- m_identifier
                      <|> do { id <- m_identifier; return (IdOrAtribI (Id id))}
 
 atribparser :: Parser Atrib
-atribparser = try(do { id <- m_identifier
+atribparser = try(do { id <- idparser
                  ; assign <- assignop
                  ; e <- expparser
-                 ; return (Atrib (Id id) assign e)
+                 ; return (Atrib id assign e)
                  })
 
 funcallparser :: Parser FunCall

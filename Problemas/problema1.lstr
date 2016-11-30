@@ -2,5 +2,6 @@ proc main(){
 	rational x, y;
 	int c;
 	read x y c;
-	write (x * x - y + c);//conversao implicita de alargamento permitida pela linguagem
+	write (x * x - y + c );//conversao implicita de alargamento permitida pela linguagem
+	write ("\n");
 }

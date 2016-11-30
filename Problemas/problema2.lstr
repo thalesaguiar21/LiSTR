@@ -17,4 +17,5 @@ proc main(){
 		read x;
 	}
 	write a b c d;
+	write "\n";
 }
