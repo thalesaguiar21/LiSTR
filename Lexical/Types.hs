@@ -125,7 +125,7 @@ prod v1 v2 = conversion prod v1 v2
 
 divide :: (Value, Type) -> (Value, Type) -> (Value, Type)
 divide (IntV n, Int) (IntV m, Int) = (RacionalV (PRacional n m), Racional)
-divide (RacionalV n, Racional) (RacionalV m, Racional) = (RacionalV (n/m), Racional)
+divide (RacionalV n, Racional) (RacionalV m, Racional) = (RacionalV (divR n m), Racional)
 divide (FloatV n, Float) (FloatV m, Float) = (FloatV (n / m), Float)
 divide v1 v2 = conversion divide v1 v2
 

@@ -22,5 +22,5 @@ proc main(){
 	write "Digite dois numeros inteiros: \n";
 	read m n;
 	mdc(m, n, r);
-	write "O mdc de " m " e " n " eh " r "\n";
+	write "O mdc de " m "e " n "eh " r "\n";
 }

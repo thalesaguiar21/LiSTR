@@ -15,10 +15,10 @@ proc main(){
 	else {
 		write "Os numeros racionais sao diferentes!\n";
 	}
-	write "Soma:      " x " + " y " = " x+y "\n";
-	write "Negacao:   " (-x) "\n";
-	write "Subtracao: " x " + " y " = " x-y "\n";	
-	write "Produto:   " x " * " y " = " x*y "\n";
-	write "Inverso:   " 1/x   "\n";
-	write "Divisao:   " x " / " y " = " x/y "\n";
+	write "Soma:      ( " x ") + ( " y ") = " x+y "\n";
+	write "Negacao:   ( " (-x) ")\n";
+	write "Subtracao: ( " x ") + ( " y ") = " x-y "\n";	
+	write "Produto:   ( " x ") * ( " y ") = " x*y "\n";
+	write "Inverso:   ( " 1/x ")\n";
+	write "Divisao:   ( " x ") / ( " y ") = " x/y "\n";
 }
