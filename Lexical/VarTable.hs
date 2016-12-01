@@ -24,5 +24,3 @@ seg (_, v,_) = v
 ter ::  (a, b, c) -> c
 ter (_,_,t) = t
 
---addSymb :: SymTable -> Symbol -> SymTable
-

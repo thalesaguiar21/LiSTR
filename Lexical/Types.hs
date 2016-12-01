@@ -82,7 +82,7 @@ convertToType (IntV n) Int Float = FloatV (fromIntegral n)
 convertToType (RacionalV (PRacional n m)) Racional Int = IntV (n `div` m)
 convertToType (RacionalV r) Racional Float = FloatV ((fromIntegral (numerator r)) / (fromIntegral (denominator r)))
 convertToType (FloatV f) Float Int = IntV (truncate f)
-convertToType (FloatV f) Float Racional = error $ "Ainda nao foi implementado"--let r = toRational f in RacionalV (PRacional (numerator r) (denominator r))
+convertToType (FloatV f) Float Racional = error $ "Ainda nao foi implementado"
 convertToType v type0 type1 = if (type0 == type1) then v 
                               else error $ "Can't convert " ++ (show type0) ++ " to " ++ (show type1)
 

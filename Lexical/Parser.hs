@@ -18,7 +18,7 @@ data P = FunP FunDecl
 data FunDecl = Fun Type Id ParamDecl Stmt 
         | Proc Id ParamDecl Stmt deriving Show
 data Stmt = AtribS Atrib 
-        | IfS If {-| ForS ForRule-} 
+        | IfS If
         | While LogicExp Stmt 
         | VarS VarDecl 
         | FunS FunCall 
@@ -61,14 +61,14 @@ data Type = Int
         | Racional 
         | Bool 
         | StructAux String 
-        | Struct Id [(Type, Id)] deriving (Eq, Show)--struct id = type name, [(type, Id)] = field type and id
+        | Struct Id [(Type, Id)] deriving (Eq, Show)
 data Value = IntV Int 
         | FloatV Double 
         | CharV Char 
         | StringV String 
         | RacionalV Racional 
         | BoolV Bool 
-        | StructV Type [Value]--structV type = struct type, contains field types and name, value = field value
+        | StructV Type [Value]
 data If = If LogicExp Stmt 
         | IfElse LogicExp Stmt Stmt deriving Show
 data LogicExp = LogicExp LogicOp ArithmeticExp ArithmeticExp 
@@ -90,16 +90,6 @@ data IdOrAtrib = IdOrAtribI Id
 data ParamDecl = ParamDecl [(Type, Id, Bool)] deriving Show
 data FunCall = FunCall Id Param deriving Show
 data Param = Param [Exp] deriving Show
-{-data ForRule = For111 Type ForAtrib ForComp ForRight Stmt 
-            | For110 Type ForAtrib ForComp          Stmt
-            | For101 Type ForAtrib         ForRight Stmt 
-            | For100 Type ForAtrib                  Stmt
-            | For011               ForComp ForRight Stmt | For010               ForComp          Stmt
-            | For001                       ForRight Stmt | For000                                Stmt
-              deriving Show
-data ForAtrib = Ids [Id] | IdAssign [Atrib] deriving Show
-data ForComp = ForId Id | ForComp LogicExp deriving Show
-data ForRight = ForRight [Exp] {-| Id AddAssign Exp1 | Id SubAssign Exp1 | Id AddAssign Exp1 Comma ForRight | Id SubAssign Exp1 Comma ForRight-} deriving Show-}
 
 instance Show Id where
    show (Id n) = n
@@ -202,11 +192,6 @@ idparser = do { id <- m_identifier
               ; if (null ids) then return (Id id)
                 else return (StructId ((Id id) : ids))
               }
-                    {-
-             <|> do { id <- m_identifier
-                    ; inc  <- ((m_reservedOp "++" >> return (PlusPlusPost)) <|> (m_reservedOp "--" >> return (MinusMinusPost)))
-                    ; return (Post inc (Id id))
-                    }-}
 
 logicexpparser :: Parser LogicExp
 logicexpparser = buildExpressionParser logictable logicterm <?> "logicexpression"

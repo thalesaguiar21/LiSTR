@@ -52,11 +52,6 @@ updateGlobal :: SymTable -> SymTable -> SymTable
 updateGlobal (st, Null) st2 = getGlobal st2
 updateGlobal (st, SymTable anc) st2 = ( st, SymTable (updateGlobal anc st2))
 
----------------------------------------
----playFun :: Fun -> SymTable -> TypeTable -> FunTable -> (Type, Value)
----playFun = 
----------------------------------------
-
 
 isString :: Value -> (Bool, String)
 isString (StringV v) = (True, v)
@@ -86,12 +81,11 @@ readT ((Id id):t) s st0 = do { let (_, _, t0) = findSymb st0 id
                              }
 
 whites :: String -> String
-whites str = dropWhile isSpace str--isSpace includes control characters
+whites str = dropWhile isSpace str-
 
 invertCase :: Char -> Char
 invertCase c = if (isUpper c) then toLower c else toUpper c
 
---must not receive the empty string("", [])
 readT2 :: Type -> String -> (Value, String)
 readT2 Bool (h:t) = let ((v, r):_) = reads ((invertCase h):t)::[(Bool,String)] in (BoolV v, r) 
 readT2 Char s = let (h:t) = whites s in (CharV h, t)
@@ -116,14 +110,13 @@ playStmt (VarS (VarDecl type0 (h:t))) (st, anc) tt ft = let (n, _, _) = (findSym
                                                            then playStmt (VarS (VarDecl type0 t))
                                                                          (((varToSymbol type0 h (st, anc) ft) : st), anc) tt ft
                                                            else error $ "variable " ++ n ++" already declared"
-playStmt (FunS (FunCall (Id id) (Param []))) st tt ft     = return (st, tt, ft) -- Adicionar checagem dos parametros e rodar função
+playStmt (FunS (FunCall (Id id) (Param []))) st tt ft     = return (st, tt, ft)
 playStmt (FunS (FunCall (Id id) (Param params))) st tt ft = let f = findFun ft (Id id)
                                                             in case f of
                                                               Proc' id pr bdy ->  if (show id) == " Not found"
                                                                                   then error "PlayStmt:: Function or procedure not delcared!"
                                                                                   else let  test1 = (length params)/=(length pr)
                                                                                             test2 = False `elem` ([ (snd (eval (params!!i) st ft))==(pri (pr!!i)) | i<-[0..(length params)-1] ])
-                                                                                            --test3 = []
                                                                                   in
                                                                                   if (test1 || test2) then error "PlayStmt:: Function or procedure not delcared! check your types"
                                                                                   else let  atual = [ ( (show (seg (pr!!i))), fst (eval (params!!i) st ft), pri (pr!!i)) | i<-[0..(length params)-1] ]
@@ -131,7 +124,7 @@ playStmt (FunS (FunCall (Id id) (Param params))) st tt ft = let f = findFun ft (
                                                                                   in
                                                                                   do { (ns, nt, nf) <- playProc (Proc' id pr bdy) pst tt ft params st
                                                                                   ; return (ns, nt, nf)
-                                                                                  } -- Adicionar checagem dos parametros e rodar função
+                                                                                  }
 playStmt (AtribS (Atrib id assign exp)) st tt ft = return ((atribSymb id assign (eval exp st ft) st), tt, ft)
 playStmt (IfS (If exp stmt)) st tt ft = if (evalL exp st ft)
                                         then do { (s, t, f) <- playStmt stmt ([], SymTable st) tt ft
@@ -164,10 +157,7 @@ getName :: IdOrAtrib -> Name
 getName (IdOrAtribI (Id id)) = id
 getName (IdOrAtribA (Atrib (Id id) _ _)) = id
 
--- Ajeitando
-{-type FunTable = [Fun]
 
-data Fun = FunC Name Type [(Name, Type)] [Stmt] | Proc' Name [(Name, Type)] [Stmt]-}
 playProgram :: P -> [Symbol] -> TypeTable -> FunTable -> (IO ([Symbol], TypeTable, FunTable))
 playProgram (P []) st tt ft = return (st, tt, ft)
 playProgram (P (h:t)) st0 tt0 ft0 = do {(st1, tt1, ft1) <- (playProgram h st0 tt0 ft0); playProgram (P t) st1 tt1 ft1}
@@ -214,9 +204,6 @@ evalA (Exp Sub exp1 exp2) st ft = sub (evalA exp1 st ft ) (evalA exp2 st ft )
 evalA (Exp Prod exp1 exp2) st ft = prod (evalA exp1 st ft ) (evalA exp2 st ft )
 evalA (Exp Div exp1 exp2) st ft = divide (evalA exp1 st ft ) (evalA exp2 st ft )
 evalA (Exp Mod exp1 exp2) st ft = modulus (evalA exp1 st ft ) (evalA exp2 st ft )
---evalA (Exp VecProd exp1 exp2) st = vecProd (evalA exp1 st) (evalA exp2 st)
---evalA (Exp FunCall exp1 exp2) st = funCall fun
---operacoes posfixadas e prefixadas nao foram implementadas
 evalA (Neg exp) st ft = sub (IntV 0, Int) (evalA exp st ft )
 evalA exp _ _ = error $ "couldn't understand the expression " ++ show exp
 
@@ -228,9 +215,6 @@ evalL (BoolId (Id id)) st ft =  let (name, value, type0) = findSymb st id in
                                      if (name == " Not Found") 
                                      then error $ "variable " ++ id ++ " not declared"
                                      else valueToBool value
-{-evalL (BoolId id) st =  let (name, value, type0) = findSymb st id in
-                          if (name == " Not Found") then error $ "variable " ++ id ++ " not declared"
-                          else valueToBool value-}
 evalL (LogicConst b) _ _ = b
 evalL (LogicExp Lt exp1 exp2) st ft = comp (<) (evalA exp1 st ft) (evalA exp2 st ft)
 evalL (LogicExp Gt exp1 exp2) st ft = comp (>) (evalA exp1 st ft) (evalA exp2 st ft)

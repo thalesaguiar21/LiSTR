@@ -3,23 +3,14 @@ struct Aluno {
 	int mat;
 };
 
-fun Aluno create (string name, int mat) {
-	Aluno myAluno;
-	myaluno.name = "Thales Aguiar";
-	myAluno.mat = 2014038999;
-	return myAluno;
-}
-
-fun bool isEqual (Aluno a1, Aluno a2) {
-	if((a1.name == a2.name) && (a1.mat == a2.mat)){
-		return true;
-	} else {
-		return false;
-	}
+proc imprimirDados (Aluno a1) {
+	write "Nome: " a1.name "\n";
+	write "Matr: " a1.mat  "\n";
 }
 
 proc main(){
-	int x;
-
-	write "Hey\n";
+	Aluno t;
+	t.name = "Selanzinho";
+	t.mat  = 123456789;
+	imprimirDados (t);
 }

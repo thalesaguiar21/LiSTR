@@ -49,20 +49,3 @@ findFun ((FunC name t p s):c) n =   if name==n then (FunC name t p s)
                                            else (findFun c n)
 findFun ((Proc' name p s):c) n =    if name==n then (Proc' name p s)
                                            else (findFun c n)
-
-
-
--- Predefined functions
-
-
-
-
-{-mySTB = ([], Null)
-f1 = FunC "func1" Float [("p1", Float), ("p2", Char)] [] --[ VarS (VarDecl (VarDecl Float [(IdOrAtribI (Id "yay"))])) ]
-f2 = FunC "func2" Float [("p1", Float), ("p2", Char)] []
-f3 = FunC "func3" Float [("p1", Float)] []
-f4 = FunC "func4" Float [] []
-f5 = Proc' "proced1" [("p", Int), ("p2", Int)] []
-f6 = FunC "func5" Float [("p1", Float), ("p", Int)] []
-f7 = Proc' "proced2" [("p1", Int), ("p2", Char)] []
-listf = []-}
