@@ -97,6 +97,13 @@ playStmt (VarS (VarDecl type0 (h:t))) (st, anc) tt ft = let (n, _, _) = (findSym
                                                            then playStmt (VarS (VarDecl type0 t))
                                                                          (((varToSymbol type0 h (st, anc) ft) : st), anc) tt ft
                                                            else error $ "variable " ++ n ++" already declared"
+playStmt (FunS (FunCall (Id id) (Param []))) st tt ft     = return (st, tt, ft)
+playStmt (FunS (FunCall (Id id) (Param params))) st tt ft = let f = findFun ft (Id id)
+                                                            in case f of
+                                                                  FunC id tp (h:t) bdy  -> if (show id) == " Not found"
+                                                                                           then error "PlayStmt:: Function or procedure not delcared!"
+                                                                                           else return (st, tt, ft)
+                                                                  Proc' id tp pr     -> return (st, tt, ft)
 playStmt (AtribS (Atrib id assign exp)) st tt ft = return ((atribSymb id assign (eval exp st ft) st), tt, ft)
 playStmt (IfS (If exp stmt)) st tt ft = if (evalL exp st ft)
                                         then do { (s, t, f) <- playStmt stmt ([], SymTable st) tt ft
