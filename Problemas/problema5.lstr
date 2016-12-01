@@ -2,15 +2,17 @@ proc mdc(int n, int m, inout int r){
 	if(m % n == 0){
 		r = n;
 	}
-	if(n % m == 0){
-		r = m;
-	}
 	else{
-		if(m > n){
-			mdc(n, m % n, r);
+		if(n % m == 0){
+			r = m;
 		}
 		else{
-			mdc(m, n % m, r);
+			if(m > n){
+				mdc(n, m%n, r);
+			}
+			else{
+				mdc(m, n%m, r);
+			}
 		}
 	}
 }
@@ -20,5 +22,5 @@ proc main(){
 	write "Digite dois numeros inteiros: \n";
 	read m n;
 	mdc(m, n, r);
-	write "O mdc de " m " e " n " eh " r "\n"; 
+	write "O mdc de " m " e " n " eh " r "\n";
 }

@@ -11,6 +11,15 @@ import Data.Char
 import Text.Parsec
 import Text.Parsec.String
 
+
+typeToValue :: Type -> Value
+typeToValue Bool = BoolV False
+typeToValue Char = CharV ' '
+typeToValue Int = IntV 1
+typeToValue Racional = RacionalV (PRacional 0 0)
+typeToValue Float = FloatV 0.0
+typeToValue String = StringV ""
+
 atribSymb :: Id -> Assign-> (Value, Type) -> SymTable -> SymTable
 atribSymb id _ _ ([], Null) = error ( "variable " ++ (show id) ++ " not declared")
 atribSymb id a v ([], SymTable anc) = ([], SymTable (atribSymb id a v anc))
@@ -49,6 +58,22 @@ atribStruct [] (value0, type0) (value1, type1) = if (superType type0 type1) then
                                                  else error ((show type0) ++ " not compatible with " ++ (show type1) ++ " use cast")
 atribStruct ((Id id):t) (StructV type0 (values), Struct _ l) v = let (vl, vm, vr) = splitStruct id l values in
                                                                      StructV type0 (vl ++ ((atribStruct t vm v) : vr))
+
+atribListSymb :: [Symbol] -> SymTable -> SymTable
+atribListSymb [] st = st
+atribListSymb ((name, value, typo):t) st = atribListSymb t (atribSymb (Id name) Assign (value, typo) st)
+
+updateSymTable :: SymTable -> [(Type, Id, Bool)] -> [Exp] -> SymTable
+updateSymTable (atual, Null) pr p = (atual, Null)
+updateSymTable (atual, SymTable (anc, t)) pr p =  let inout = [ x | x<-pr, (ter x)]
+                                                      aux = [y | (x, y) <- zip pr p, (ter x)]
+                                                      ios = [ let (_, nmformal, _) = (inout!!i)
+                                                                  (AExp (ExpId nmreal)) = (aux!!i)
+                                                                  (_, v, _) = findSymb (atual, Null) (show nmformal)
+                                                              in
+                                                                  ((show nmreal), v, (pri (inout!!i))) | i<-[0..(length inout)-1] ]
+                                                  in
+                                                      (atual, SymTable (atribListSymb ios (anc, t)))
 
 convertToType :: Value -> Type -> Type -> Value
 convertToType (CharV c) Char String = StringV (c : [])
@@ -124,51 +149,3 @@ getValueFromStruct :: [Id] -> Value -> Type -> (Value, Type)
 getValueFromStruct [] v t = (v, t)
 getValueFromStruct (h:t) (StructV _ v) (Struct _ l) = let (v0, t0) = findInStruct h v l in
                                                           getValueFromStruct t v0 t0
-
-evalA :: ArithmeticExp -> SymTable -> (Value, Type)
-evalA (ExpId (Id id)) st = let (name, value, type0) = findSymb st id in
-                          if (name == " Not Found") then error $ "variable " ++ id ++ " not declared"
-                          else (value, type0)
-evalA (ExpId (StructId ((Id id):ids))) st = let (name, value0, type0) = findSymb st id in
-                                 if (name == " Not Found") then error $ "variable " ++ id ++ " not declared"
-                                 else getValueFromStruct ids value0 type0
-evalA (Const (CharV c)) _ = (CharV c, Char)
-evalA (Const (IntV n)) _ = (IntV n, Int)
-evalA (Const (RacionalV r)) _ = (RacionalV r, Racional)
-evalA (Const (FloatV f)) _ = (FloatV f, Float)
-evalA (Const (StringV s)) _ = (StringV s, String)
-evalA (Exp Add exp1 exp2) st = add (evalA exp1 st) (evalA exp2 st)
-evalA (Exp Sub exp1 exp2) st = sub (evalA exp1 st) (evalA exp2 st)
-evalA (Exp Prod exp1 exp2) st = prod (evalA exp1 st) (evalA exp2 st)
-evalA (Exp Div exp1 exp2) st = divide (evalA exp1 st) (evalA exp2 st)
-evalA (Exp Mod exp1 exp2) st = modulus (evalA exp1 st) (evalA exp2 st)
---evalA (Exp VecProd exp1 exp2) st = vecProd (evalA exp1 st) (evalA exp2 st)
---evalA (Exp FunCall exp1 exp2) st = funCall fun
---operacoes posfixadas e prefixadas nao foram implementadas
-evalA (Neg exp) st = sub (IntV 0, Int) (evalA exp st)
-evalA exp _ = error $ "couldn't understand the expression " ++ show exp
-
-comp :: (Value -> Value -> Bool) -> (Value, Type) -> (Value, Type) -> Bool
-comp op (v0, t0) (v1, t1) = if (t0 == t1) then (op v0 v1) else error $ "the types aren't comparable"
-
-evalL :: LogicExp -> SymTable -> Bool
-evalL (BoolId (Id id)) st =  let (name, value, type0) = findSymb st id in
-                          if (name == " Not Found") then error $ "variable " ++ id ++ " not declared"
-                          else valueToBool value
-{-evalL (BoolId id) st =  let (name, value, type0) = findSymb st id in
-                          if (name == " Not Found") then error $ "variable " ++ id ++ " not declared"
-                          else valueToBool value-}
-evalL (LogicConst b) _ = b
-evalL (LogicExp Lt exp1 exp2) st = comp (<) (evalA exp1 st) (evalA exp2 st)
-evalL (LogicExp Gt exp1 exp2) st = comp (>) (evalA exp1 st) (evalA exp2 st)
-evalL (LogicExp LEq exp1 exp2) st = comp (<=) (evalA exp1 st) (evalA exp2 st)
-evalL (LogicExp GEq exp1 exp2) st = comp (>=) (evalA exp1 st) (evalA exp2 st)
-evalL (LogicExp Eq exp1 exp2) st = comp (==) (evalA exp1 st) (evalA exp2 st)
-evalL (LogicExp Diff exp1 exp2) st = comp (/=) (evalA exp1 st) (evalA exp2 st)
-evalL (BoolExp And exp1 exp2) st = ((evalL exp1 st) && (evalL exp2 st))
-evalL (BoolExp Or exp1 exp2) st = ((evalL exp1 st) || (evalL exp2 st))
-
-eval :: Exp -> SymTable -> (Value, Type)
-eval (LExp exp) st = (BoolV (evalL exp st), Bool)
-eval (AExp exp) st = evalA exp st
-
