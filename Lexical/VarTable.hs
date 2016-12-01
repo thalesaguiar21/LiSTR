@@ -15,18 +15,6 @@ findSymb (h:t, anc) n0 = let (n1, _, _) = h in
 findSymb ([], SymTable anc) name = findSymb anc name
 
 
-updateSymTable :: SymTable -> [(Type, Id, Bool)] -> SymTable
-updateSymTable (atual, Null) pr = (atual, Null)
-updateSymTable (atual, SymTable (anc, t)) pr =  let inout = [ x | x<-pr, (ter x)]
-                                                    ios = [ let (_, nm, _) = (inout!!i)
-                                                                (_, v, _) = findSymb (atual, Null) (show nm)
-                                                            in
-                                                                ((show nm), v, (pri (inout!!i))) | i<-[0..(length inout)-1] ]
-                                                    notInout = [ x | x<-anc, not (elem x ios)]
-                                                in
-                                                    (atual, SymTable (ios++notInout, t))
-
-
 pri :: (a, b, c) -> a
 pri (n,_,_) = n
 

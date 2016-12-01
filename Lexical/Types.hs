@@ -59,6 +59,22 @@ atribStruct [] (value0, type0) (value1, type1) = if (superType type0 type1) then
 atribStruct ((Id id):t) (StructV type0 (values), Struct _ l) v = let (vl, vm, vr) = splitStruct id l values in
                                                                      StructV type0 (vl ++ ((atribStruct t vm v) : vr))
 
+atribListSymb :: [Symbol] -> SymTable -> SymTable
+atribListSymb [] st = st
+atribListSymb ((name, value, typo):t) st = atribListSymb t (atribSymb (Id name) Assign (value, typo) st)
+
+updateSymTable :: SymTable -> [(Type, Id, Bool)] -> [Exp] -> SymTable
+updateSymTable (atual, Null) pr p = (atual, Null)
+updateSymTable (atual, SymTable (anc, t)) pr p =  let inout = [ x | x<-pr, (ter x)]
+                                                      aux = [y | (x, y) <- zip pr p, (ter x)]
+                                                      ios = [ let (_, nmformal, _) = (inout!!i)
+                                                                  (AExp (ExpId nmreal)) = (aux!!i)
+                                                                  (_, v, _) = findSymb (atual, Null) (show nmformal)
+                                                              in
+                                                                  ((show nmreal), v, (pri (inout!!i))) | i<-[0..(length inout)-1] ]
+                                                  in
+                                                      (atual, SymTable (atribListSymb ios (anc, t)))
+
 convertToType :: Value -> Type -> Type -> Value
 convertToType (CharV c) Char String = StringV (c : [])
 convertToType (IntV n) Int Racional = RacionalV (PRacional n 1)
