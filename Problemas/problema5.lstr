@@ -1,24 +1,25 @@
 proc mdc(int n, int m, inout int r){
-	write "to em MDC";
 	if(m % n == 0){
 		r = n;
 	}
-	if(n % m == 0){
-		r = m;
-	}
 	else{
-		if(m > n){
-			mdc(n, m % n, r);
+		if(n % m == 0){
+			r = m;
 		}
 		else{
-			mdc(m, n % m, r);
+			if(m > n){
+				mdc(n, m%n, r);
+			}
+			else{
+				mdc(m, n%m, r);
+			}
 		}
 	}
 }
 
 proc main(){
-	int m, n, r = 0;
-	read m n;
-	mdc(m, n, r);
-	write r;
+	int a, b, t = 0;
+	read a b;
+	mdc(a, b, t);
+	write t;
 }

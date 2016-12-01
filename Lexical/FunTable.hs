@@ -44,7 +44,7 @@ rmFun (h:t) f = if h==f then t else [h]++(rmFun t f)
 
 
 findFun :: FunTable -> Id -> Fun
-findFun [] n = (FunC (Id " Not found") Int [] (Stmts []))
+findFun [] n = (Proc' (Id " Not found") [] (Stmts []))
 findFun ((FunC name t p s):c) n =   if name==n then (FunC name t p s)
                                            else (findFun c n)
 findFun ((Proc' name p s):c) n =    if name==n then (Proc' name p s)

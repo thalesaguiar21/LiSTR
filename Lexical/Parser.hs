@@ -53,7 +53,7 @@ data PreFixOp = Negate
         | PlusPlusPre 
         | MinusMinusPre deriving Show
 data Id = Id String 
-        | StructId [Id] deriving (Eq, Show)
+        | StructId [Id] deriving (Eq)
 data Type = Int 
         | Float 
         | String 
@@ -100,6 +100,9 @@ data Param = Param [Exp] deriving Show
 data ForAtrib = Ids [Id] | IdAssign [Atrib] deriving Show
 data ForComp = ForId Id | ForComp LogicExp deriving Show
 data ForRight = ForRight [Exp] {-| Id AddAssign Exp1 | Id SubAssign Exp1 | Id AddAssign Exp1 Comma ForRight | Id SubAssign Exp1 Comma ForRight-} deriving Show-}
+
+instance Show Id where
+   show (Id n) = n
 
 instance Show Value where
    show (IntV v) = show v

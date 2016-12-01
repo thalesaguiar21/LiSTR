@@ -39,12 +39,15 @@ playWhile2 l (Stmts done) (Stmts (h:t)) st tt ft = do { (s0, t0, f0) <- playStmt
                                                    ; playWhile2 l (Stmts (done ++ [h])) (Stmts t) s0 t0 f0
                                                    }
 
---------------------------------------------------
 playProc :: Fun -> SymTable -> TypeTable -> FunTable -> (IO (SymTable, TypeTable, FunTable))
 playProc (Proc' id pr bdy) st tt ft = do {(ns, nt, nf) <- (playStmt bdy st tt ft)
-                                          ; return ((ancestor ns), nt, nf)
+                                          ; return ((ancestor (updateSymTable ns pr)), nt, nf)
                                           }
---------------------------------------------------
+
+---------------------------------------
+---playFun :: Fun -> SymTable -> TypeTable -> FunTable -> (Type, Value)
+---playFun = 
+---------------------------------------
 
 
 isString :: Value -> (Bool, String)
@@ -108,15 +111,19 @@ playStmt (VarS (VarDecl type0 (h:t))) (st, anc) tt ft = let (n, _, _) = (findSym
 playStmt (FunS (FunCall (Id id) (Param []))) st tt ft     = return (st, tt, ft) -- Adicionar checagem dos parametros e rodar função
 playStmt (FunS (FunCall (Id id) (Param params))) st tt ft = let f = findFun ft (Id id)
                                                             in case f of
-                                                                  FunC id tp (h:t) bdy  -> if (show id) == " Not found"
-                                                                                           then error "PlayStmt:: Function or procedure not delcared!"
-                                                                                           else return (st, tt, ft) -- Adicionar checagem dos parametros e rodar função   fst (eval (params!!i) st ft)
-                                                                  Proc' id pr bdy     ->  let atual = [ (show (seg (pr!!i)), typeToValue (pri (pr!!i)), pri (pr!!i)) | i<-[0..(length params)-1] ]
-                                                                                              pst = (atual, (SymTable st))
-                                                                                          in
-                                                                                          do { (ns, nt, nf) <- playProc (Proc' id pr bdy) pst tt ft
-                                                                                          ; return (ns, nt, nf)
-                                                                                          } -- Adicionar checagem dos parametros e rodar função
+                                                              Proc' id pr bdy ->  if (show id) == " Not found"
+                                                                                  then error "PlayStmt:: Function or procedure not delcared!"
+                                                                                  else let  test1 = (length params)/=(length pr)
+                                                                                            test2 = False `elem` ([ (snd (eval (params!!i) st ft))==(pri (pr!!i)) | i<-[0..(length params)-1] ])
+                                                                                            --test3 = []
+                                                                                  in
+                                                                                  if (test1 || test2) then error "PlayStmt:: Function or procedure not delcared! check your types"
+                                                                                  else let  atual = [ ( (show (seg (pr!!i))), fst (eval (params!!i) st ft), pri (pr!!i)) | i<-[0..(length params)-1] ]
+                                                                                            pst = (atual, SymTable st)
+                                                                                  in
+                                                                                  do { (ns, nt, nf) <- playProc (Proc' id pr bdy) pst tt ft
+                                                                                  ; return (ns, nt, nf)
+                                                                                  } -- Adicionar checagem dos parametros e rodar função
 playStmt (AtribS (Atrib id assign exp)) st tt ft = return ((atribSymb id assign (eval exp st ft) st), tt, ft)
 playStmt (IfS (If exp stmt)) st tt ft = if (evalL exp st ft)
                                         then do { (s, t, f) <- playStmt stmt ([], SymTable st) tt ft
