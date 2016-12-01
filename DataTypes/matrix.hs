@@ -10,18 +10,48 @@ module DataTypes.Matrix
     --, inverse
     ) where
 
-data Matrix a = CMatrix Int Int [[a]] --(Eq, Num)
 
-instance Show a => Show (Matrix a) where
+import DataTypes.Racional
+import DataTypes.Analytic.Complex
+
+--data Matrix a = CMatrix Int Int [[a]] --(Eq, Num)
+
+data Matrix = IMatrix Int Int [[Int]]
+              | FMatrix Int Int [[Float]]
+              | RMatrix Int Int [[Racional]]
+              | CMatrix Int Int [[Complex]]
+              | IIMatrix Int Int [[Integer]]
+
+instance Show Matrix where
+  show (IMatrix i j b) = printAllLines b
+  show (FMatrix i j b) = printAllLines b
+  show (RMatrix i j b) = printAllLines b
   show (CMatrix i j b) = printAllLines b
+  show (IIMatrix i j b) = printAllLines b
 
-instance Eq a => Eq (Matrix a) where
+instance Eq Matrix where
+  (IMatrix i j b) == (IMatrix k l c) = if (i/=k) || (j/=l) then False
+                                        else b==c
+  (FMatrix i j b) == (FMatrix k l c) = if (i/=k) || (j/=l) then False
+                                        else b==c
+  (RMatrix i j b) == (RMatrix k l c) = if (i/=k) || (j/=l) then False
+                                        else b==c
   (CMatrix i j b) == (CMatrix k l c) = if (i/=k) || (j/=l) then False
                                         else b==c
+  (IIMatrix i j b) == (IIMatrix k l c) = if (i/=k) || (j/=l) then False
+                                        else b==c
 
-instance Num a => Num (Matrix a) where
+instance Num Matrix where
+  (IMatrix i j m1) + (IMatrix k l m2) = if (i/=k) || (j/=l) then error "|+| >> As matrizes devem possuir o mesmo tamanho"
+                                        else (IMatrix i j (sumMatrix m1 m2))
+  (FMatrix i j m1) + (FMatrix k l m2) = if (i/=k) || (j/=l) then error "|+| >> As matrizes devem possuir o mesmo tamanho"
+                                        else (FMatrix i j (sumMatrix m1 m2))
+  (RMatrix i j m1) + (RMatrix k l m2) = if (i/=k) || (j/=l) then error "|+| >> As matrizes devem possuir o mesmo tamanho"
+                                        else (RMatrix i j (sumMatrix m1 m2))
   (CMatrix i j m1) + (CMatrix k l m2) = if (i/=k) || (j/=l) then error "|+| >> As matrizes devem possuir o mesmo tamanho"
                                         else (CMatrix i j (sumMatrix m1 m2))
+  (IIMatrix i j m1) + (IIMatrix k l m2) = if (i/=k) || (j/=l) then error "|+| >> As matrizes devem possuir o mesmo tamanho"
+                                        else (IIMatrix i j (sumMatrix m1 m2))
 
   (CMatrix i j m1) - (CMatrix k l m2) = if (i/=k) || (j/=l) then error "|-| >> As matrizes devem possuir o mesmo tamanho"
                                         else (CMatrix i j (subMatrix m1 m2))
@@ -135,10 +165,10 @@ transpose (CMatrix i j m) = (CMatrix j i [ [(m!!c)!!l | c<-[0..i-1] ] | l<-[0..j
 
 
 -- MATRIZ INVERSA
-inverse :: (Num t, Fractional t) => Matrix t -> Matrix t
+inverse :: (Num t, Fractional t) => Matrix -> Matrix
 inverse (CMatrix i j m) = snd (gausJordan ((CMatrix i j m), (ident i ((m!!0!!0)-(m!!0!!0)) (fromInteger 1)) ) 0)
 
-gausJordan :: (Num t, Fractional t) => (Matrix t, Matrix t) -> Int -> (Matrix t, Matrix t)
+gausJordan :: (Num t, Fractional t) => (Matrix, Matrix) -> Int -> (Matrix t, Matrix t)
 gausJordan ((CMatrix i j mt1), (CMatrix a b mt2)) k = if k>=j then ((CMatrix i j mt1), (CMatrix a b mt2))
                                                       else let  (m1, m2) = makeDiagUni ((CMatrix i j mt1), (CMatrix a b mt2)) k
                                                                 m = [[if l/=k then (get m1 l c)-((get m1 l k)*(get m1 k c)) else get m1 l c | c<-[0..j-1]] | l<-[0..i-1]]
