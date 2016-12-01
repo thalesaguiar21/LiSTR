@@ -1,4 +1,5 @@
 proc mdc(int n, int m, inout int r){
+	write "to em MDC";
 	if(m % n == 0){
 		r = n;
 	}

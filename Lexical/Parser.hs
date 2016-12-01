@@ -11,32 +11,91 @@ import Text.Parsec.Expr
 import Text.Parsec.Token
 import Text.Parsec.Language
 
-data P = FunP FunDecl | VarP VarDecl | StructDecl Type | P [P] deriving Show
-data FunDecl = Fun Type Id ParamDecl Stmt | Proc Id ParamDecl Stmt deriving Show
-data Stmt = AtribS Atrib | IfS If {-| ForS ForRule-} | While LogicExp Stmt | VarS VarDecl | FunS FunCall | Return Exp | Break | Continue | Write [Exp] | Read [Id] | Stmts [Stmt] deriving Show
+data P = FunP FunDecl 
+        | VarP VarDecl
+        | StructDecl Type
+        | P [P] deriving Show
+data FunDecl = Fun Type Id ParamDecl Stmt 
+        | Proc Id ParamDecl Stmt deriving Show
+data Stmt = AtribS Atrib 
+        | IfS If {-| ForS ForRule-} 
+        | While LogicExp Stmt 
+        | VarS VarDecl 
+        | FunS FunCall 
+        | Return Exp 
+        | Break 
+        | Continue 
+        | Write [Exp] 
+        | Read [Id] 
+        | Stmts [Stmt] deriving Show
 data Atrib = Atrib Id Assign Exp deriving Show
-data Exp = AExp ArithmeticExp | LExp LogicExp deriving Show
-data ArithmeticExp = Exp BinaryOp ArithmeticExp ArithmeticExp | ExpId Id | Neg ArithmeticExp | FunE FunCall | Const Value | Post PostFixOp Id | Pre PreFixOp Id deriving Show
-data BinaryOp = Add | Sub | Prod | Div | Mod | VecProd deriving Show
-data Assign = Assign | AssignPlus | AssignMinus deriving Show
-data PostFixOp = PlusPlusPost | MinusMinusPost deriving Show
-data PreFixOp = Negate | PlusPlusPre | MinusMinusPre deriving Show
-data Id = Id String | StructId [Id] deriving (Eq, Show)
-data Type = Int | Float | String | Char | Racional | Bool | StructAux String | Struct Id [(Type, Id)] deriving (Eq, Show)--struct id = type name, [(type, Id)] = field type and id
-data Value = IntV Int | FloatV Double | CharV Char | StringV String | RacionalV Racional | BoolV Bool | StructV Type [Value]--structV type = struct type, contains field types and name, value = field value
-data If = If LogicExp Stmt | IfElse LogicExp Stmt Stmt deriving Show
-data LogicExp = LogicExp LogicOp ArithmeticExp ArithmeticExp | BoolExp BoolOp LogicExp LogicExp | Not LogicExp | LogicConst Bool | BoolId Id deriving Show
-data LogicOp = Lt | Gt | LEq | GEq | Eq | Diff deriving Show
-data BoolOp = And | Or deriving Show
+data Exp = AExp ArithmeticExp 
+        | LExp LogicExp deriving Show
+data ArithmeticExp = Exp BinaryOp ArithmeticExp ArithmeticExp 
+        | ExpId Id 
+        | Neg ArithmeticExp 
+        | FunE FunCall 
+        | Const Value 
+        | Post PostFixOp Id 
+        | Pre PreFixOp Id deriving Show
+data BinaryOp = Add 
+        | Sub 
+        | Prod 
+        | Div 
+        | Mod 
+        | VecProd deriving Show
+data Assign = Assign 
+        | AssignPlus 
+        | AssignMinus deriving Show
+data PostFixOp = PlusPlusPost 
+        | MinusMinusPost deriving Show
+data PreFixOp = Negate 
+        | PlusPlusPre 
+        | MinusMinusPre deriving Show
+data Id = Id String 
+        | StructId [Id] deriving (Eq, Show)
+data Type = Int 
+        | Float 
+        | String 
+        | Char 
+        | Racional 
+        | Bool 
+        | StructAux String 
+        | Struct Id [(Type, Id)] deriving (Eq, Show)--struct id = type name, [(type, Id)] = field type and id
+data Value = IntV Int 
+        | FloatV Double 
+        | CharV Char 
+        | StringV String 
+        | RacionalV Racional 
+        | BoolV Bool 
+        | StructV Type [Value]--structV type = struct type, contains field types and name, value = field value
+data If = If LogicExp Stmt 
+        | IfElse LogicExp Stmt Stmt deriving Show
+data LogicExp = LogicExp LogicOp ArithmeticExp ArithmeticExp 
+        | BoolExp BoolOp LogicExp LogicExp 
+        | Not LogicExp 
+        | LogicConst Bool 
+        | BoolId Id deriving Show
+data LogicOp = Lt 
+        | Gt 
+        | LEq 
+        | GEq 
+        | Eq 
+        | Diff deriving Show
+data BoolOp = And 
+        | Or deriving Show
 data VarDecl = VarDecl Type [IdOrAtrib] deriving Show
-data IdOrAtrib = IdOrAtribI Id | IdOrAtribA Atrib deriving Show
+data IdOrAtrib = IdOrAtribI Id 
+        | IdOrAtribA Atrib deriving Show
 data ParamDecl = ParamDecl [(Type, Id, Bool)] deriving Show
 data FunCall = FunCall Id Param deriving Show
 data Param = Param [Exp] deriving Show
-{-data ForRule = For111 Type ForAtrib ForComp ForRight Stmt | For110 Type ForAtrib ForComp          Stmt
-             | For101 Type ForAtrib         ForRight Stmt | For100 Type ForAtrib                  Stmt
-             | For011               ForComp ForRight Stmt | For010               ForComp          Stmt
-             | For001                       ForRight Stmt | For000                                Stmt
+{-data ForRule = For111 Type ForAtrib ForComp ForRight Stmt 
+            | For110 Type ForAtrib ForComp          Stmt
+            | For101 Type ForAtrib         ForRight Stmt 
+            | For100 Type ForAtrib                  Stmt
+            | For011               ForComp ForRight Stmt | For010               ForComp          Stmt
+            | For001                       ForRight Stmt | For000                                Stmt
               deriving Show
 data ForAtrib = Ids [Id] | IdAssign [Atrib] deriving Show
 data ForComp = ForId Id | ForComp LogicExp deriving Show
