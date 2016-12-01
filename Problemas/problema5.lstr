@@ -17,7 +17,8 @@ proc mdc(int n, int m, inout int r){
 
 proc main(){
 	int m, n, r = 0;
+	write "Digite dois numeros inteiros: \n";
 	read m n;
 	mdc(m, n, r);
-	write r;
+	write "O mdc de " m " e " n " eh " r "\n"; 
 }

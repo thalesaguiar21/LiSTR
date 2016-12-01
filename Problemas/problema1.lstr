@@ -1,7 +1,10 @@
 proc main(){
 	rational x, y;
 	int c;
-	read x y c;
-	write (x * x - y + c );//conversao implicita de alargamento permitida pela linguagem
-	write ("\n");
+	write "Digite dois numeros racionais: \n";
+	read x y;
+	write "Digite um numero inteiro: ";
+	read c;
+	//conversao implicita de alargamento permitida pela linguagem
+	write "( "x ") * (" x ") - (" y ") + " c " = " x * x - y + c "\n";	
 }
